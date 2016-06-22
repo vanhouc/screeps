@@ -290,7 +290,7 @@ interface Creep extends RoomObject {
 		* energy: number
 		* The current amount of energy the creep is carrying.
 		*/
-	carry: { energy: number };
+	carry: CarryObject;
 	/**
 		* The total amount of resources the creep can carry.
 		*/
@@ -363,7 +363,7 @@ interface Creep extends RoomObject {
 	harvest(target: Source): number;
 	heal(target: Creep): number;
 	move(direction: number) : number;
-	moveByPath(path: PathStep[]): number;
+	moveByPath(path: PathStep[] | string): number;
 	moveTo(x: number, y: number, opts?: MoveToOpts): number;
 	moveTo(target: RoomPosition|{pos: RoomPosition}, opts?: MoveToOpts): number;
 	notifyWhenAttacked(enabled: boolean): number;
@@ -801,6 +801,9 @@ interface SurvivalGameInfo {
 		* The number of the next wave.
 		*/
 	wave: number;
+}
+interface CarryObject {
+	RESOURCE_ENERGY: number;
 }
 interface LookAtResult {
 	type: string;
