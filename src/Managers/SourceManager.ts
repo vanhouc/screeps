@@ -7,35 +7,12 @@ class SourceManager {
 		}
 	}
 	registerSource(id: string) {
-		Memory.sources[id] = { harvestRoutes: [], isPlotted: false, forbidden: false };
 		var source = Game.getObjectById<Source>(id);
-		Memory.rooms[source.room.name].sources.push(id);
+		source.getHarvestSpots();
+		Memory.sources[id] = { harvestRoutes: [], isPlotted: false, forbidden: false };
+		
 	}
 	main() {
-		for (var sourceId in Memory.sources) {
-			var source = Game.getObjectById<Source>(sourceId);
-			if (needsPlot) {
-				var newPath = this.updatePath(needsPlot);
-				if (newPath) {
-					Memory.sources[needsPlot].harvestRoutes.push(newPath);
-					roomMemory.capacity[CreepRole.harvester] = _.sum(_.map(sources, source => {
-						var memory = Memory.sources[source];
-						return memory.harvestRoutes.length;
-					}));
-				}
-				console.log("plotted path to " + needsPlot);
-				return;
-			}
-			var needsUpdate = _.find(sources.map(source => {
-				var memory = Memory.sources[source];
-				return _.find(memory.harvestRoutes, route => route.needsUpdate);
-			}), route => route);
-			if (needsUpdate) {
-				this.updatePath(needsUpdate);
-				console.log("updated path to " + needsUpdate.sourceId);
-				return;
-			}
-		}
 	}
 	private updatePath(id: string): SourceRoute
 	private updatePath(route: SourceRoute): SourceRoute
@@ -49,8 +26,6 @@ class SourceManager {
 				creepName: null,
 				needsUpdate: false,
 				harvestPos: null,
-				toSource: null,
-				toSpawn: null
 			};
 		}
 		else route = target;

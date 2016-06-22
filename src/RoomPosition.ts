@@ -2,6 +2,7 @@
 
 interface RoomPosition {
 	getId(): string;
+	fromId(string): RoomPosition;
 	isObstructed(ignoreCreeps?: boolean): boolean;
 	findPathableAround(ignoreCreeps?: boolean): RoomPosition[];
 	fastPathTo(target: RoomPosition|{ pos: RoomPosition }|string): PathStep[];
@@ -9,7 +10,11 @@ interface RoomPosition {
 }
 RoomPosition.prototype.getId = function() {
 	var _this: RoomPosition = this;
-	return _this.x.toString() + _this.y.toString() + _this.roomName.toString();
+	return _this.roomName + "_" + _this.x.toString() + "_" + _this.y.toString();
+}
+RoomPosition.prototype.fromId = function(id: string) {
+	var pieces = id.split("_");
+	return new RoomPosition(parseInt(pieces[0]), parseInt(pieces[1]), pieces[2]);
 }
 RoomPosition.prototype.isObstructed = function(ignoreCreeps?: boolean) {
 	var lookAt: LookAtResult = this.lookAt();
@@ -40,7 +45,7 @@ RoomPosition.prototype.findPathableAround = function(ignoreCreeps?: boolean) {
 RoomPosition.prototype.fastPathTo = function(target: any, opts?: FindPathOpts) {
 	var src: RoomPosition = this;
 	var dest: RoomPosition = target.pos ? target.pos : target;
-	var path = Memory.paths[src.getId() + dest.getId()]
+	var path = Memory.paths[src.getId() + "_" + dest.getId()]
 	if (!path) {
 		var steps = src.findPathTo(dest, opts);
 		path = {usagePerTick: 0, lastUsed: 0, steps: steps};

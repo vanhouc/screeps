@@ -7,5 +7,5 @@ interface ICaste {
 	minimumCost: number;
 	main(name: string): number;
 	applyBehavior(name: string): number;
-	disposeBehavior(room: string, name: string): number;
+	disposeBehavior(name: string): number;
 }

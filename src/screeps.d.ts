@@ -231,9 +231,16 @@ declare var TERRAIN_MASK_WALL: number;
 declare var TERRAIN_MASK_SWAMP: number;
 declare var TERRAIN_MASK_LAVA: number;
 /**
+ * Any object with a position in a room. Almost all game objects prototypes are derived from RoomObject.
+ */
+interface RoomObject {
+	pos: RoomPosition;
+	room: Room;
+}
+/**
 	* A site of a structure which is currently under construction.
 	*/
-interface ConstructionSite {
+interface ConstructionSite extends RoomObject {
 	prototype: ConstructionSite;
 	/**
 		* A unique object identificator. You can use Game.getObjectById method to retrieve an object instance by its id.
@@ -248,10 +255,6 @@ interface ConstructionSite {
 		*/
 	owner: Owner;
 	/**
-		* An object representing the position of this structure in the room.
-		*/
-	pos: RoomPosition;
-	/**
 		* The current construction progress.
 		*/
 	progress: number;
@@ -259,10 +262,6 @@ interface ConstructionSite {
 		* The total construction progress needed for the structure to be built.
 		*/
 	progressTotal: number;
-	/**
-		* The link to the Room object of this structure.
-		*/
-	room: Room;
 	/**
 		* One of the following constants: STRUCTURE_EXTENSION, STRUCTURE_RAMPART, STRUCTURE_ROAD, STRUCTURE_SPAWN, STRUCTURE_WALL, STRUCTURE_LINK
 		*/
@@ -276,7 +275,7 @@ interface ConstructionSite {
 /**
 	* Creeps are your units. Creeps can move, harvest energy, construct structures, attack another creeps, and perform other actions.
 	*/
-interface Creep {
+interface Creep extends RoomObject {
 	prototype: Creep;
 	/**
 		* An array describing the creep’s body. Each element contains the following properties:
@@ -329,14 +328,6 @@ interface Creep {
 		*/
 	owner: Owner;
 	/**
-		* An object representing the position of this creep in a room.
-		*/
-	pos: RoomPosition;
-	/**
-		* The link to the Room object of this creep.
-		*/
-	room: Room;
-	/**
 		* Whether this creep is still being spawned.
 		*/
 	spawning: boolean;
@@ -376,7 +367,7 @@ interface Creep {
 	moveTo(x: number, y: number, opts?: MoveToOpts): number;
 	moveTo(target: RoomPosition|{pos: RoomPosition}, opts?: MoveToOpts): number;
 	notifyWhenAttacked(enabled: boolean): number;
-	pickup(target: Energy): number;
+	pickup(target: Resource): number;
 	rangedAttack(target: Creep|Spawn|Structure): number;
 	rangedHeal(target: Creep): number;
 	rangedMassAttack(): number;
@@ -390,8 +381,8 @@ interface Creep {
 /**
 	* A dropped piece of energy. It will decay after a while if not picked up.
 	*/
-interface Energy {
-	prototype: Energy;
+interface Resource extends RoomObject {
+	prototype: Resource;
 	/**
 		* The amount of energy containing.
 		*/
@@ -400,20 +391,12 @@ interface Energy {
 		* A unique object identificator. You can use Game.getObjectById method to retrieve an object instance by its id.
 		*/
 	id: string;
-	/**
-		* An object representing the position in the room.
-		*/
-	pos: RoomPosition;
-	/**
-		* The link to the Room object of this structure.
-		*/
-	room: Room;
 }
 /**
 	* A flag. Flags can be used to mark particular spots in a room. Flags are visible to their owners only.
 	*/
-interface Flag {
-	prototype: Energy;
+interface Flag extends RoomObject {
+	prototype: Resource;
 	/**
 		* A unique object identificator. You can use Game.getObjectById method to retrieve an object instance by its id.
 		*/
@@ -430,14 +413,6 @@ interface Flag {
 		* Flag’s name. You can choose the name while creating a new flag, and it cannot be changed later. This name is a hash key to access the spawn via the Game.flags object.
 		*/
 	name: string;
-	/**
-		* An object representing the position of this structure in the room.
-		*/
-	pos: RoomPosition;
-	/**
-		* The link to the Room object. May not be available in case a flag is placed in a room which you do not have access to.
-		*/
-	room: Room;
 	/**
 		* The name of the room in which this flag is in. This property is deprecated and will be removed soon. Use pos.roomName instead.
 		*/
@@ -730,16 +705,14 @@ interface RoomPosition {
 	look(): LookAtResult;
 	lookFor<T>(type: string): T[];
 }
-interface Source {
+interface Source extends RoomObject {
 	prototype: Source;
 	energy: number;
 	energyCapacity: number;
 	id: string;
-	pos: RoomPosition;
-	room: Room;
 	ticksToRegeneration: number;
 }
-interface Spawn {
+interface Spawn extends RoomObject {
 	prototype: Spawn;
 	energy: number;
 	energyCapacity: number;
@@ -760,15 +733,13 @@ interface Spawn {
 	notifyWhenAttacked(enabled: boolean): number;
 	transferEnergy(target: Creep, amount?: number): number;
 }
-interface Structure {
+interface Structure extends RoomObject {
 	prototype: Structure;
 	hits: number;
 	hitsMax: number;
 	id: string;
 	my: boolean;
 	owner: Owner;
-	pos: RoomPosition;
-	room: Room;
 	structureType: string;
 	destroy(): number;
 	notifyWhenAttacked(enabled: boolean): number;
@@ -835,7 +806,7 @@ interface LookAtResult {
 	type: string;
 	constructionSite?: ConstructionSite;
 	creep?: Creep;
-	energy?: Energy;
+	energy?: Resource;
 	exit?: any;
 	flag?: Flag;
 	source?: Source;
