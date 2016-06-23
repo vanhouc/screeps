@@ -25,13 +25,13 @@ module.exports.loop = function () {
     for (source of sources) {
         //Find available tiles next to the source
         console.log(source.id);
-        console.log((source.pos.y - 1) +','+ (source.pos.x - 1)+','+ (source.pos.y + 1)+','+ (source.pos.x + 1));
+        console.log((source.pos.y - 1) + ',' + (source.pos.x - 1) + ',' + (source.pos.y + 1) + ',' + (source.pos.x + 1));
         var tilesAround = utility.findPathableAround(source.pos);
         console.log('Available tiles: ' + tilesAround.length);
         //Find all creeps already assigned to the source
         console.log(source.room.find(FIND_MY_CREEPS).length)
         var assignedCreeps = _(source.room.find(FIND_MY_CREEPS))
-        .filter((creep) => creep.memory.source == source.id);
+            .filter((creep) => creep.memory.source == source.id);
         assignedCreeps = _.values(assignedCreeps);
         console.log('Assigned creeps: ' + assignedCreeps.length);
         //If there are available spots spawn a harvester and assign it to the spot
@@ -41,8 +41,17 @@ module.exports.loop = function () {
                 brokenCreep.memory.source = source.id;
                 console.log('Assigned ' + brokenCreep.name + ' to source ' + source.id);
             } else {
-                var newName = Game.spawns.Spawn1.createCreep([WORK, CARRY, MOVE], undefined, { role: 'harvester', source: source.id });
-                console.log('Spawning new harvester: ' + newName);
+                var role;
+                if (harvesters.length < 2) {
+                    role = 'harvester';
+                }
+                if (upgraders.length < builders.length) {
+                    role = 'upgrader';
+                } else {
+                    role = 'builder';
+                }
+                var newName = Game.spawns.Spawn1.createCreep([WORK, CARRY, MOVE], undefined, { role: role, source: source.id });
+                console.log('Spawning new ' + role + ': ' + newName);
             }
         }
     }
@@ -52,7 +61,7 @@ module.exports.loop = function () {
         console.log('Spawning new upgrader: ' + newName);
     }
 
-    if (builders.length < 1) {
+    if (builders.length < 5) {
         var newName = Game.spawns.Spawn1.createCreep([WORK, CARRY, MOVE], undefined, { role: 'builder' });
         console.log('Spawning new builder: ' + newName);
     }
