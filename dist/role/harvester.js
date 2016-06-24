@@ -25,6 +25,13 @@ var roleHarvester = {
                     if (creep.transfer(targets[0], RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
                         creep.moveTo(targets[0]);
                     }
+                } else {
+                    var targets = creep.room.find(FIND_CONSTRUCTION_SITES);
+                    if (targets.length) {
+                        if (creep.build(targets[0]) == ERR_NOT_IN_RANGE) {
+                            creep.moveTo(targets[0]);
+                        }
+                    }
                 }
             } else {
                 var route = Game.map.findRoute(creep.room, creep.memory.home);

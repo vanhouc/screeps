@@ -1,32 +1,38 @@
-var roleBuilder = {
+var roleTransport = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
         //If harvester has not been assigned a source, PANIC!!!!
         if (creep.memory.source == null) {
-            console.log('Creep ' + creep.name + ' is a builder with no available sources');
+            console.log('Creep ' + creep.name + ' is a transport with no available sources');
             return;
         }
-        if (Game.getObjectById(creep.memory.source) && Game.getObjectById(creep.memory.source).memory.role == 'miner') {
-            Game.getObjectById(creep.memory.source).memory.transporter = creep.id;
-        }
-		if (!creep.memory.filling && creep.carry.energy == 0) {
+        if (!creep.memory.filling && creep.carry.energy == 0) {
             creep.memory.filling = true;
         }
         if (creep.memory.filling && creep.carry.energy == creep.carryCapacity) {
             creep.memory.filling = false;
+        }
+        if (Game.getObjectById(creep.memory.source) && Game.getObjectById(creep.memory.source).memory.role == 'miner') {
+            Game.getObjectById(creep.memory.source).memory.transporter = creep.id;
         }
         if (creep.memory.filling) {
             creep.moveTo(Game.getObjectById(creep.memory.source));
         }
         else {
             if (creep.room.name === creep.memory.home) {
-				var targets = creep.room.find(FIND_CONSTRUCTION_SITES);
-				if (targets.length) {
-					if (creep.build(targets[0]) == ERR_NOT_IN_RANGE) {
-						creep.moveTo(targets[0]);
-					}
-				}
+                var targets = creep.room.find(FIND_STRUCTURES, {
+                    filter: (structure) => {
+                        return (structure.structureType == STRUCTURE_EXTENSION ||
+                            structure.structureType == STRUCTURE_SPAWN ||
+                            structure.structureType == STRUCTURE_TOWER) && structure.energy < structure.energyCapacity;
+                    }
+                });
+                if (targets.length > 0) {
+                    if (creep.transfer(targets[0], RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                        creep.moveTo(targets[0]);
+                    }
+                }
             } else {
                 var route = Game.map.findRoute(creep.room, creep.memory.home);
                 if (route.length > 0) {
@@ -47,16 +53,16 @@ var roleBuilder = {
         var body = [];
         switch (room.energyCapacityAvailable) {
             case 550:
-                body = [WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
+                body = [CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
                 break;
             case 300:
-                body = [WORK, CARRY, CARRY, MOVE];
+                body = [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
                 break;
         }
-        var name = spawn.createCreep(body, undefined, { role: 'builder', home: room.name, source: source.id, filling: true });
+        var name = spawn.createCreep(body, undefined, { role: 'transport', home: room.name, source: source.id, filling: true });
         if (_.isString(name))
-            console.log('created new builder ' + name);
+            console.log('created new transport ' + name);
     }
 };
 
-module.exports = roleBuilder;
+module.exports = roleTransport;
