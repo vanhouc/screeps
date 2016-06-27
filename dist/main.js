@@ -14,34 +14,25 @@ module.exports.loop = function () {
             delete Memory.creeps[name];
         }
     }
-    var harvesters = _.filter(Game.creeps, (creep) => creep.memory.role == 'harvester');
-    console.log('Harvesters: ' + harvesters.length);
-
-    var upgraders = _.filter(Game.creeps, (creep) => creep.memory.role == 'upgrader');
-    console.log('Upgraders: ' + upgraders.length);
-
-    var builders = _.filter(Game.creeps, (creep) => creep.memory.role == 'builder');
-    console.log('Builders: ' + builders.length);
     //RUN THE ECONOMY BIOTCH
     economyManager();
     //Check to see if there are available harvest spots on any sources
     var mineableRooms = _.filter(Game.rooms, (room) => room.controller == null || room.controller.my || room.controller.owner == null);
     var sources = _.flatten(mineableRooms.map(room => room.find(FIND_SOURCES)));
     var ownedRooms = _.values(Game.rooms).filter(room => room.controller != null && room.controller.my === true);
-    for (var room of ownedRooms) {
-        console.log(room.name);
-        var exits = Game.map.describeExits(room.name);
-        for (var exit of _.values(exits)) {
-            if (!_.any(Game.creeps, creep => creep.memory.role === 'scout' && creep.memory.destination === exit)) {
-                console.log('Spawning scout to explore ' + exit);
-                Game.spawns.Spawn1.createCreep([MOVE], undefined, { role: 'scout', destination: exit });
-            }
-        }
-
-    }
+    // for (var room of ownedRooms) {
+    //     console.log(room.name);
+    //     var exits = Game.map.describeExits(room.name);
+    //     for (var exit of _.values(exits)) {
+    //         if (!_.any(Game.creeps, creep => creep.memory.role === 'scout' && creep.memory.destination === exit)) {
+    //             console.log('Spawning scout to explore ' + exit);
+    //             Game.spawns.Spawn1.createCreep([MOVE], undefined, { role: 'scout', destination: exit });
+    //         }
+    //     }
+    // }
     for (var name in Game.creeps) {
         var creep = Game.creeps[name];
-        if (creep.memory.home == null || creep.memory.home != 'E31S24') {
+        if (creep.memory.home == null) {
             console.log('setting home to ' + Game.spawns.Spawn1.room.name);
             creep.memory.home = Game.spawns.Spawn1.room.name;
         }

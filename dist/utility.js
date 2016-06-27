@@ -24,13 +24,13 @@ var utility = {
 		}
 		return pathableTiles;
 	},
-	getNumberOfTransports: function(source, destination, transportBody, minerBody) {
-		var ePerTick = minerBody.filter(parts => part == WORK).length * 3;
-		//Estimate
-		var ticksPerTile = transportBody.reduce(total, part => part == MOVE ? total - 1 : total + 3);
-		ticksPerTile = ticksPerTile < 1 ? 1 : ticksPerTile;
-		var routeLength = PathFinder.search(source.pos, destination.pos).length;
-		routeLength
-	}
+	    getTransportPerTick: function (origin, goal, body) {
+        var ticksPerTile = Math.ceil(body.reduce((total, part) => part.type == MOVE ? total - 1 : total + 1, 0));
+        ticksPerTile = ticksPerTile < 1 ? 1 : ticksPerTile;
+        var route = PathFinder.search(origin.pos, {pos: goal.pos, range: 1});
+        var totalDropoffTicks = ticksPerTile * (route.path.length * 2);
+        var carryPerTrip = body.reduce((total, part) => part.type == CARRY ? total + 50 : total + 0, 0);
+        return carryPerTrip / totalDropoffTicks;
+    }
 }
 module.exports = utility;
