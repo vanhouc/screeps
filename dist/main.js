@@ -1,15 +1,47 @@
-var _ = require('lodash');
-var utility = require('utility');
-var roleHarvester = require('harvester');
-var roleUpgrader = require('upgrader');
-var roleBuilder = require('builder');
-var roleScout = require('scout');
-var roleMiner = require('miner');
-var roleTransport = require('transport');
-var economyManager = require('economy');
+let _ = require('lodash');
+let utility = require('utility');
+let roleHarvester = require('harvester');
+let roleUpgrader = require('upgrader');
+let roleBuilder = require('builder');
+let roleScout = require('scout');
+let roleMiner = require('miner');
+let roleTransport = require('transport');
+let economyManager = require('economy');
+
+RoomObject.prototype.findClosest = function (type, findOpts, range, pathOpts) {
+    let goals = this.room.find(type, findOpts).map(obj => { return { id: obj.id, pos: obj.pos, range: 0 } });
+    let path = PathFinder.search(this.pos, goals, pathOpts).path;
+    if (!path.length) return null;
+    let goal = goals.find(goal => goal.pos.isNearTo(path[path.length - 1]));
+    if (!goal) return null;
+    return Game.getObjectById(goal.id);
+}
+Creep.prototype.getCarryPerTick = function (dest) {
+    let spawn = this.room.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_SPAWN } })[0];
+    let route = PathFinder.search(spawn.pos, dest.pos).path
+        .map(pos => {
+            let things = pos.look();
+            if (things.find(x => x.type == 'structure' && x.structure == 'road')) return 1;
+            if (things.find(x => x.type == 'terrain' && x.terrain == 'plain')) return 2;
+            if (things.find(x => x.type == 'terrain' && x.terrain == 'swamp')) return 5;
+            return 0;
+        });
+    let pickupWeight = Math.ceil(this.body.reduce((total, part) => part.type == MOVE ? total - 1 : part.type == CARRY ? total : total + 1, 0));
+    // creep cannot move faster than 1 tile per tick
+    pickupWeight = pickupWeight < 1 ? 1 : pickupWeight;
+    let pickupTicks = route.reduce((total, tileCost) => total + tileCost * pickupWeight);
+    let dropOffWeight = Math.ceil(this.body.reduce((total, part) => part.type == MOVE ? total - 1 : total + 1, 0));
+    // creep cannot move faster than 1 tile per tick
+    dropOffWeight = dropOffWeight < 1 ? 1 : dropOffWeight;
+    let dropOffTicks = route.reduce((total, tileCost) => total + tileCost * dropOffWeight);
+    // account for the ticks for transfer
+    let totalTicks = pickupTicks + dropOffTicks + 2;
+    let carryPerTrip = this.body.reduce((total, part) => part.type == CARRY ? total + 50 : total, 0);
+    return carryPerTrip / (totalTicks / 2);
+}
 
 module.exports.loop = function () {
-    for (var name in Memory.creeps) {
+    for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
             delete Memory.creeps[name];
         }

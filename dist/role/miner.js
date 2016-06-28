@@ -1,5 +1,5 @@
-var utility = require('utility');
-var roleMiner = {
+let utility = require('utility');
+let roleMiner = {
     /** @param {Creep} creep **/
     run: function (creep) {
         creep.memory.needTransports = false;
@@ -24,35 +24,31 @@ var roleMiner = {
                 creep.transfer(transportsInRange[0], RESOURCE_ENERGY);
             } else {
                 var spawn = Game.rooms[creep.memory.home].find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_SPAWN } })[0];
-                var ePerTick = creep.body.filter(part => part.type == WORK).length * 3;
-                var transportPerTick = transports.length ? transports.reduce((total, transport) => utility.getTransportPerTick(spawn, creep, transport.body), 0) : 0;
+                var ePerTick = creep.body.reduce((total, part) => part.type == WORK ? total + 3 : total, 0);
+                var transportPerTick = transports.length ? transports.reduce((total, transport) => total + transport.getCarryPerTick(creep), 0) : 0;
                 if (ePerTick > transportPerTick) {
-                    console.log('miner ' + creep.name + ' e per tick is ' + ePerTick + ' currently transporting ' + transportPerTick + ' per tick');
                     creep.memory.needTransports = true;
                 }
             }
         }
     },
     createRole: function (room, source, cost) {
-        console.log('creating creep');
         var spawns = room.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_SPAWN } });
         if (!spawns.length) {
-            console.log('Room ' + room.name + ' has no spawns');
             return;
         }
         var spawn = spawns[0];
         var body = [];
-        switch (cost || room.energyCapacityAvailable) {
+        switch (cost || room.energyAvailable) {
             case 550:
                 body = [WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE];
                 break;
             case 300:
+            default:
                 body = [WORK, WORK, CARRY, MOVE];
                 break;
         }
-        var name = spawn.createCreep(body, undefined, { role: 'miner', energyPerTick: body.filter(part => part.type == WORK).length * 3, source: source.id });
-        if (_.isString(name))
-            console.log('created new miner ' + name);
+        var name = spawn.createCreep(body, undefined, { role: 'miner', energyPerTick: body.reduce((total, part) => part.type == WORK ? total + 3 : total, 0), source: source.id });
     }
 };
 

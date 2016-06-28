@@ -17,7 +17,7 @@ var roleTransport = {
         if (creep.memory.tpt == null) {
             var spawn = Game.rooms[creep.memory.home].find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_SPAWN } })[0];
             console.log(spawn);
-            creep.memory.tpt = utility.getTransportPerTick(spawn, Game.getObjectById(creep.memory.source), creep.body);
+            creep.memory.tpt = creep.getCarryPerTick(Game.getObjectById(creep.memory.source));
         }
         if (!creep.memory.filling && creep.carry.energy == 0) {
             creep.memory.filling = true;
@@ -35,8 +35,9 @@ var roleTransport = {
         } else {
             if (creep.memory.building || creep.memory.upgrading || roleHarvester.run(creep) == ERR_NOT_FOUND) {
                 if (creep.memory.upgrading || roleBuilder.run(creep) == ERR_NOT_FOUND) {
-                    roleUpgrader.run(creep);
-                    creep.memory.upgrading = true;
+                    // roleUpgrader.run(creep);
+                    creep.memory.upgrading = false;
+                    creep.memory.building = false;
                 } else {
                     creep.memory.building = true;
                 }
@@ -51,15 +52,13 @@ var roleTransport = {
         }
         var spawn = spawns[0];
         var body = [];
-        switch (cost || room.energyCapacityAvailable) {
+        switch (cost || room.energyAvailable) {
             case 550:
                 body = [WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
                 break;
             case 300:
                 body = [WORK, CARRY, CARRY, MOVE, MOVE];
                 break;
-            case 150:
-                body = [CARRY, CARRY, MOVE]
         }
         var name = spawn.createCreep(body, undefined, { role: 'transport', home: room.name, source: source.id, filling: true });
         if (_.isString(name))
