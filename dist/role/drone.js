@@ -1,10 +1,22 @@
-var roleBuilder = {
+var roleDrone = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+        if (Game.getObjectById(creep.memory.source) == null)
+            delete creep.memory.source;
         //If harvester has not been assigned a source, PANIC!!!!
+        if (creep.memory.source == null) {
+            delete creep.memory.tpt;
+            return;
+        }
+        if (creep.memory.tpt == null) {
+            var spawn = Game.rooms[creep.memory.home].find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_SPAWN } })[0];
+            creep.memory.tpt = creep.getCarryPerTick(Game.getObjectById(creep.memory.source));
+        }
         if (!creep.memory.filling && creep.carry.energy == 0) {
             creep.memory.filling = true;
+            creep.memory.upgrading = false;
+            creep.memory.building = false;
         }
         if (creep.memory.filling && creep.carry.energy == creep.carryCapacity) {
             creep.memory.filling = false;
@@ -13,20 +25,14 @@ var roleBuilder = {
             Game.getObjectById(creep.memory.source).memory.drones.push(creep.id);
         }
         if (creep.memory.filling) {
-            let target = creep.findClosest(FIND_STRUCTURES, {
-                filter: (structure) => {
-                    return structure.structureType == STRUCTURE_CONTAINER && 
-                        _.sum(structure.store) > 0;
-                }
-            }, 1);
-            if (target && target.transfer(creep, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-                creep.moveTo(target);
-            }
+            creep.moveTo(Game.getObjectById(creep.memory.source));
         } else {
-            if (this.build(creep) == ERR_NOT_FOUND) {
-                this.upgrade(creep)
+            if (creep.memory.building || creep.memory.upgrading || this.harvest(creep) == ERR_NOT_FOUND) {
+                if (creep.room.controller.level < 2 || this.build(creep) == ERR_NOT_FOUND) {
+                    creep.memory.building = false;
+                    this.upgrade(creep);
+                }
             }
-            
         }
     },
     build: function (creep) {
@@ -39,6 +45,7 @@ var roleBuilder = {
                 } else
                     return buildResult;
             } else {
+                creep.memory.building = false;
                 return ERR_NOT_FOUND;
             }
         } else {
@@ -57,9 +64,9 @@ var roleBuilder = {
                     return (structure.structureType == STRUCTURE_EXTENSION ||
                         structure.structureType == STRUCTURE_SPAWN ||
                         structure.structureType == STRUCTURE_TOWER ||
-                        structure.structureType == STRUCTURE_CONTAINER) && 
+                        structure.structureType == STRUCTURE_CONTAINER) &&
                         (structure.energy < structure.energyCapacity ||
-                        _.sum(structure.store) < structure.storeCapacity);
+                            _.sum(structure.store) < structure.storeCapacity);
                 }
             }, 1);
 
@@ -106,16 +113,16 @@ var roleBuilder = {
         var body = [];
         switch (cost || room.energyAvailable) {
             case 550:
-                body = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE];
+                body = [WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
                 break;
             case 300:
-                body = [WORK, WORK, CARRY, MOVE];
+                body = [WORK, CARRY, CARRY, MOVE, MOVE];
                 break;
         }
-        var name = spawn.createCreep(body, undefined, { role: 'builder', home: room.name, filling: true });
+        var name = spawn.createCreep(body, undefined, { role: 'drone', home: room.name, source: source.id, filling: true });
         if (_.isString(name))
-            console.log('created new builder ' + name);
+            console.log('created new drone ' + name);
     }
 };
 
-module.exports = roleBuilder;
+module.exports = roleDrone;

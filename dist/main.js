@@ -1,13 +1,97 @@
 let _ = require('lodash');
+let md5 = require('md5');
 let utility = require('utility');
-let roleHarvester = require('harvester');
-let roleUpgrader = require('upgrader');
 let roleBuilder = require('builder');
 let roleScout = require('scout');
 let roleMiner = require('miner');
-let roleTransport = require('transport');
+let roleDrone = require('drone');
 let economyManager = require('economy');
+Source.prototype.stats = function () {
+    var miners = _.values(Game.creeps).filter(creep => creep.memory.role == 'miner' && creep.memory.source == this.id);
+    console.log('Source: ' + this.id + ', Available Tiles: ' + this.pos.findPathableAround().length + ', Miners: ' + miners);
+}
+StructureContainer.prototype.reserveResources = function (id, resources) {
+    for (let resourceType in resources) {
+        if (this.store[resourceType] < resources[resourceType]) {
+            return ERR_NOT_ENOUGH_RESOURCES;
+        }
+    }
+    //Initialize memory space if undefined
+    if (Memory.containers[this.id] = null) {
+        Memory.containers[this.id] = { reserved: {} };
+    }
+    Memory.containers[this.id].reserved[id] = resources;
+    return OK;
+}
+StructureContainer.prototype.availableResources = function () {
+    //Initialize memory space if undefined
+    //Initialize memory space if undefined
+    if (Memory.containers[this.id] = null) {
+        Memory.containers[this.id] = { reserved: {} };
+    }
+    let store = this.store;
+    for (let reservation of _.values(Memory.containers[this.id].reserved)) {
+        for (let resourceType in reservation) {
+            if (store[resourceType] >= reservation[resourceType]) {
+                store[resourceType] = store[resourceType] - reservation[resourceType];
+            }
+        }
+    }
+    return store;
+}
+StructureContainer.prototype.pickupReservation = function (id) {
+    //Initialize memory space if undefined
+    if (Memory.containers[this.id] = null) {
+        Memory.containers[this.id] = { reserved: {} };
+    }
+    let reservation = Memory.containers[this.id].reserved[id]
+    if (reservation == null) return ERR_INVALID_ARGS;
+    for (let resourceType in reservation) {
+        let transferResult = this.transfer(resourceType, resources[resourceType]);
+        if (transferResult == ERR_NOT_ENOUGH_RESOURCES) {
+            console.log('oooooh shit someones been stealin from me');
+        }
+        if (transferResult == OK) {
+            delete reservation[resourceType];
+            if (!_.keys(reservation).length)
+                delete Memory.containers[this.id].reserved[id];
+            return transferResult;
+        }
 
+    }
+    return ERR_NOT_ENOUGH_RESOURCES;
+}
+RoomPosition.prototype.findPathableAround = function () {
+    var room = Game.rooms[this.roomName];
+    var pathableTiles = [];
+    var area = room.lookAtArea(this.y - 1, this.x - 1, this.y + 1, this.x + 1);
+    for (var y in area) {
+        for (var x in area[y]) {
+            if (!_.some(area[y][x], (lookAt) =>
+                (lookAt.type === "constructionSite" &&
+                    lookAt.constructionSite.structureType != STRUCTURE_ROAD
+                ) ||
+                lookAt.type === "exit" ||
+                lookAt.type === "source" ||
+                (lookAt.type === "structure" &&
+                    lookAt.structure.structureType != STRUCTURE_ROAD
+                ) ||
+                (lookAt.type === "terrain" &&
+                    lookAt.terrain === "wall")
+            )) {
+                var checkPos = room.getPositionAt(x, y)
+                pathableTiles.push(checkPos);
+            }
+        }
+    }
+    return pathableTiles;
+}
+Room.prototype.sourceStats = function () {
+    var sources = this.find(FIND_SOURCES);
+    for (source of sources) {
+        source.stats();
+    }
+}
 RoomObject.prototype.findClosest = function (type, findOpts, range, pathOpts) {
     let goals = this.room.find(type, findOpts).map(obj => { return { id: obj.id, pos: obj.pos, range: 0 } });
     let path = PathFinder.search(this.pos, goals, pathOpts).path;
@@ -39,8 +123,18 @@ Creep.prototype.getCarryPerTick = function (dest) {
     let carryPerTrip = this.body.reduce((total, part) => part.type == CARRY ? total + 50 : total, 0);
     return carryPerTrip / (totalTicks / 2);
 }
-
+Creep.prototype.minerStats = function () {
+    if (this.memory.role != 'miner') return null;
+    var ePerTick = this.body.reduce((total, part) => part.type == WORK ? total + 2 : total, 0);
+    var transports = this.memory.transports.map(drone => Game.getObjectById(drone)).filter(drone => drone != null);
+    var transportPerTick = transports.length ? transports.reduce((total, drone) => total + drone.getCarryPerTick(this), 0) : 0;
+    console.log('Miner: ' + this.name + ', Energy Per Tick: ' + ePerTick + ', Transports: ' + transports + ', Transported Per Tick: ' + transportPerTick);
+}
+Creep.prototype.transportStats = function () {
+    var transports = _.filter(Game.creeps, creep => creep.memory.role === 'drone');
+}
 module.exports.loop = function () {
+    if (Memory.containers == null) Memory.containers = {}
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
             delete Memory.creeps[name];
@@ -65,7 +159,6 @@ module.exports.loop = function () {
     for (var name in Game.creeps) {
         var creep = Game.creeps[name];
         if (creep.memory.home == null) {
-            console.log('setting home to ' + Game.spawns.Spawn1.room.name);
             creep.memory.home = Game.spawns.Spawn1.room.name;
         }
         if (creep.memory.role == 'harvester') {
@@ -83,8 +176,8 @@ module.exports.loop = function () {
         if (creep.memory.role == 'miner') {
             roleMiner.run(creep);
         }
-        if (creep.memory.role == 'transport') {
-            roleTransport.run(creep);
+        if (creep.memory.role == 'drone') {
+            roleDrone.run(creep);
         }
     }
 }
