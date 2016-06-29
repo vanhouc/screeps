@@ -2,17 +2,41 @@ let _ = require('lodash');
 let md5 = require('md5');
 let utility = require('utility');
 let roleBuilder = require('builder');
+let roleProspector = require('prospector');
 let roleScout = require('scout');
-let roleMiner = require('miner');
 let roleDrone = require('drone');
+let dispatcher = require('dispatcher');
 let economyManager = require('economy');
 Source.prototype.stats = function () {
     var miners = _.values(Game.creeps).filter(creep => creep.memory.role == 'miner' && creep.memory.source == this.id);
     console.log('Source: ' + this.id + ', Available Tiles: ' + this.pos.findPathableAround().length + ', Miners: ' + miners);
 }
+Creep.prototype.transferAll = function (target) {
+    if (_.sum(this.carry) < 1) return ERR_NOT_ENOUGH_RESOURCES;
+    for (resourceType in this.carry) {
+        if (this.carry[resourceType] > 0)
+            return this.transfer(target, resourceType);
+    }
+}
 StructureContainer.prototype.reserveResources = function (id, resources) {
+    let reserved = {};
     for (let resourceType in resources) {
-        if (this.store[resourceType] < resources[resourceType]) {
+        if (this.availableResources()[resourceType] < resources[resourceType]) {
+            reserved[resourceType] = this.availableResources()[resourceType];
+        } else {
+            reserved[resourceType] = resources[resourceType];
+        }
+    }
+    //Initialize memory space if undefined
+    if (Memory.containers[this.id] = null) {
+        Memory.containers[this.id] = { reserved: {} };
+    }
+    Memory.containers[this.id].reserved[id] = reserved;
+    return reserved;
+}
+StructureContainer.prototype.canReserveResources = function (id, resources) {
+    for (let resourceType in resources) {
+        if (this.availableResources()[resourceType] < resources[resourceType]) {
             return ERR_NOT_ENOUGH_RESOURCES;
         }
     }
@@ -20,7 +44,6 @@ StructureContainer.prototype.reserveResources = function (id, resources) {
     if (Memory.containers[this.id] = null) {
         Memory.containers[this.id] = { reserved: {} };
     }
-    Memory.containers[this.id].reserved[id] = resources;
     return OK;
 }
 StructureContainer.prototype.availableResources = function () {
@@ -39,7 +62,7 @@ StructureContainer.prototype.availableResources = function () {
     }
     return store;
 }
-StructureContainer.prototype.pickupReservation = function (id) {
+StructureContainer.prototype.pickupReservation = function (id, target) {
     //Initialize memory space if undefined
     if (Memory.containers[this.id] = null) {
         Memory.containers[this.id] = { reserved: {} };
@@ -47,7 +70,7 @@ StructureContainer.prototype.pickupReservation = function (id) {
     let reservation = Memory.containers[this.id].reserved[id]
     if (reservation == null) return ERR_INVALID_ARGS;
     for (let resourceType in reservation) {
-        let transferResult = this.transfer(resourceType, resources[resourceType]);
+        let transferResult = this.transfer(target, resourceType, resources[resourceType]);
         if (transferResult == ERR_NOT_ENOUGH_RESOURCES) {
             console.log('oooooh shit someones been stealin from me');
         }
@@ -140,32 +163,30 @@ module.exports.loop = function () {
             delete Memory.creeps[name];
         }
     }
+
     //RUN THE ECONOMY BIOTCH
+    dispatcher.run();
     economyManager();
-    //Check to see if there are available harvest spots on any sources
-    var mineableRooms = _.filter(Game.rooms, (room) => room.controller == null || room.controller.my || room.controller.owner == null);
-    var sources = _.flatten(mineableRooms.map(room => room.find(FIND_SOURCES)));
-    var ownedRooms = _.values(Game.rooms).filter(room => room.controller != null && room.controller.my === true);
-    // for (var room of ownedRooms) {
-    //     console.log(room.name);
-    //     var exits = Game.map.describeExits(room.name);
-    //     for (var exit of _.values(exits)) {
-    //         if (!_.any(Game.creeps, creep => creep.memory.role === 'scout' && creep.memory.destination === exit)) {
-    //             console.log('Spawning scout to explore ' + exit);
-    //             Game.spawns.Spawn1.createCreep([MOVE], undefined, { role: 'scout', destination: exit });
-    //         }
-    //     }
-    // }
-    for (var name in Game.creeps) {
-        var creep = Game.creeps[name];
+    for (let room of _.values(Game.rooms)) {
+        let spawnsNeedingEnergy = room.find(FIND_MY_STRUCTURES, { filter: structure => structure.structureType == STRUCTURE_SPAWN && dispatcher.getActualResources(structure) < structure.energyCapacity });
+        if (spawnsNeedingEnergy.length) {
+            let spawn = spawnsNeedingEnergy[0];
+            console.log('creating energy order for spawn ' + spawn.name);
+            dispatcher.createOrder(spawn, { RESOURCE_ENERGY: spawn.energyCapacity - dispatcher.getActualResources(spawn) });
+        }
+        let overBilledSpawns = room.find(FIND_MY_STRUCTURES, { filter: structure => structure.structureType == STRUCTURE_SPAWN && dispatcher.getActualResources(structure) > structure.energyCapacity });
+        for (let spawn of overBilledSpawns) {
+            let spawnOrder = _.find(Memory.dispatcher.orders, order => order.recipient == spawn.id);
+            spawnOrder.remainingResources.RESOURCE_ENERGY -= dispatcher.getActualResources(spawn) - 300;
+        }
+    }
+    for (let name in Game.creeps) {
+        let creep = Game.creeps[name];
         if (creep.memory.home == null) {
             creep.memory.home = Game.spawns.Spawn1.room.name;
         }
         if (creep.memory.role == 'harvester') {
             roleHarvester.run(creep);
-        }
-        if (creep.memory.role == 'builder') {
-            roleBuilder.run(creep);
         }
         if (creep.memory.role == 'upgrader') {
             roleUpgrader.run(creep);
@@ -173,10 +194,16 @@ module.exports.loop = function () {
         if (creep.memory.role == 'scout') {
             roleScout.run(creep);
         }
-        if (creep.memory.role == 'miner') {
-            roleMiner.run(creep);
+        if (creep.memory.role == 'prospector') {
+            roleProspector.run(creep);
+        }
+        if (creep.memory.role == 'stripMiner') {
+            roleStripMiner.run(creep);
         }
         if (creep.memory.role == 'drone') {
+            roleDrone.run(creep);
+        }
+        if (creep.memory.role == 'hauler') {
             roleDrone.run(creep);
         }
     }

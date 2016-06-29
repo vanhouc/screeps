@@ -15,7 +15,7 @@ var roleScout = {
                 creep.moveTo(exit);
             }
         } else {
-            if (creep.room.controller != null)
+            if (creep.room.controller)
                 creep.moveTo(creep.room.controller);
             else
                 creep.moveTo(25,25);
