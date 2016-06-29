@@ -4,6 +4,7 @@ let utility = require('utility');
 let roleBuilder = require('builder');
 let roleProspector = require('prospector');
 let roleScout = require('scout');
+let roleMiner = require('miner');
 let roleDrone = require('drone');
 let dispatcher = require('dispatcher');
 let economyManager = require('economy');
@@ -197,8 +198,8 @@ module.exports.loop = function () {
         if (creep.memory.role == 'prospector') {
             roleProspector.run(creep);
         }
-        if (creep.memory.role == 'stripMiner') {
-            roleStripMiner.run(creep);
+        if (creep.memory.role == 'miner') {
+            roleMiner.run(creep);
         }
         if (creep.memory.role == 'drone') {
             roleDrone.run(creep);

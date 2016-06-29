@@ -19,7 +19,7 @@ module.exports = function () {
         let miners = _.filter(Game.creeps, creep => creep.memory.role == 'miner');
         let availableContainerSource = _.find(containerSources, source => !miners.some(miner => miner.memory.source == source.source.id))
         if (availableContainerSource) {
-            return roleMiner.createRole(ownedRooms[0], availableContainerSource.source, availableContainerSource.container)
+            return roleMiner.createRole(ownedRooms[0], availableContainerSource.source.id, availableContainerSource.container.id)
         }
         var haulers = _.filter(Game.creeps, creep => creep.memory.role == 'hauler');
         if (!haulers.length || haulers.length < 5) {
@@ -27,7 +27,7 @@ module.exports = function () {
         }
     }
     if (availableSources.length) {
-        return roleProspector.createRole(ownedRooms[0], availableSources[0]);
+        return roleProspector.createRole(ownedRooms[0], availableSources[0].id);
     }
 
 }
