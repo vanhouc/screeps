@@ -3,28 +3,30 @@ var roleHauler = {
     /** @param {Creep} creep **/
     run: function (creep) {
         if (creep.memory.order == null) {
-            if (_.sum(creep.carry) > 0) {
-                for (resourceType in creep.carry) {
-                    if (creep.carry[resourceType] > 0) {
-                        return creep.drop(resourceType);
-                    }
-                }
-            }
             return;
-        } 
+        }
+        if (Memory.dispatcher.orders[creep.memory.order] == null) {
+            delete creep.memory.order;
+            return;
+        }
         //If reservation is not null then the order has not been picked up yet
-        if (creep.memory.reservation) {
+        if (creep.memory.pickupPos) {
             let container = Game.getObjectById(creep.memory.pickupPos);
             if (creep.pos.isNearTo(container)) {
                 container.pickupReservation(creep.id, creep);
+                delete creep.memory.pickupPos
             } else {
                 creep.moveTo(container);
             }
         } else {
-            let order = creep.memory.order;
+            let order = Memory.dispatcher.orders[creep.memory.order];
             let destination = Game.getObjectById(order.recipient);
             if (creep.pos.isNearTo(destination)) {
-                this.deliverOrderResource(creep, order, destination);
+                if(this.deliverOrderResource(creep, order, destination) == ERR_NOT_ENOUGH_RESOURCES) {
+                    delete creep.memory.order;
+                }
+            } else {
+                creep.moveTo(destination);
             }
         }
     },
@@ -32,14 +34,15 @@ var roleHauler = {
         if (_.sum(creep.carry) < 1) return ERR_NOT_ENOUGH_RESOURCES;
         for (resourceType in creep.carry) {
             if (creep.carry[resourceType] > 0) {
-                destinationCapacity = _.sum(destination.carry || destination.storage);
+                destinationCapacity = destination.energyCapacity ? destination.energyCapacity - destination.energy : destination.carry ? destination.carryCapacity - _.sum(destination.carry) : destination.storeCapacity - _.sum(destination.store)
                 console.log('destination capacity:' + destinationCapacity)
                 let transferAmount = creep.carry[resourceType] > destinationCapacity ? destinationCapacity : creep.carry[resourceType];
-                let transferResult = creep.transfer(target, resourceType, transferAmount);
+                let transferResult = creep.transfer(destination, resourceType, transferAmount);
                 if (transferResult == OK) {
+                    console.log(creep.name + ' delivered ' + transferAmount + ' ' + resourceType + ' for order ' + order.id)
                     order.transitResources[resourceType] -= transferAmount;
                 } else {
-                    console.log('error occurred while delivering order ' + creep.order.id + ' to ' + destination);
+                    console.log('error occurred while delivering order ' + order.id + ' to ' + destination);
                 }
             }
         }

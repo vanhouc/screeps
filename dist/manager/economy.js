@@ -10,8 +10,6 @@ module.exports = function () {
     var mineableRooms = _.filter(Game.rooms, (room) => (room.controller == null || room.controller.my || room.controller.owner == null));
     var sources = _.flatten(mineableRooms.map(room => room.find(FIND_SOURCES)));
     var drones = _.filter(Game.creeps, creep => creep.memory.role == 'drone');
-    var builders = _.filter(Game.creeps, creep => creep.memory.role == 'builder');
-    var availableBuilders = builders.filter(builder => Game.getObjectById(builder.memory.source) == null);
     var containers = _.flatten(ownedRooms.map(room => room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
     var containerSources = sources.map(source => { return { source: source, container: containers.find(container => source.pos.isNearTo(container)) } }).filter(tuple => tuple.container);
     var availableSources = sources.filter(source => !_.any(Game.creeps, creep => creep.memory.source == source.id) && !_.any(containerSources, containerSource => containerSource.source.id == source.id));
@@ -21,9 +19,13 @@ module.exports = function () {
         if (availableContainerSource) {
             return roleMiner.createRole(ownedRooms[0], availableContainerSource.source.id, availableContainerSource.container.id)
         }
-        var haulers = _.filter(Game.creeps, creep => creep.memory.role == 'hauler');
-        if (!haulers.length || haulers.length < 5) {
+        let haulers = _.filter(Game.creeps, creep => creep.memory.role == 'hauler');
+        if (!haulers.length || haulers.length < _.filter(Game.structures, structure => structure.structureType == STRUCTURE_SPAWN || structure.structureType == STRUCTURE_EXTENSION).length) {
             return roleHauler.createRole(ownedRooms[0]);
+        }
+        let builders = _.filter(Game.creeps, creep => creep.memory.role == 'builder');
+        if (!builders.length || builders.length < 3) {
+            return roleBuilder.createRole(ownedRooms[0]);
         }
     }
     if (availableSources.length) {

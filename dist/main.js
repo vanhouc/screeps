@@ -6,7 +6,9 @@ let roleProspector = require('prospector');
 let roleScout = require('scout');
 let roleMiner = require('miner');
 let roleDrone = require('drone');
+let roleHauler = require('hauler');
 let dispatcher = require('dispatcher');
+let foreman = require('foreman');
 let economyManager = require('economy');
 Source.prototype.stats = function () {
     var miners = _.values(Game.creeps).filter(creep => creep.memory.role == 'miner' && creep.memory.source == this.id);
@@ -29,8 +31,14 @@ StructureContainer.prototype.reserveResources = function (id, resources) {
         }
     }
     //Initialize memory space if undefined
-    if (Memory.containers[this.id] = null) {
+    if (Memory.containers == null) {
+        Memory.containers = {};
+    }
+    if (Memory.containers[this.id] == null) {
         Memory.containers[this.id] = { reserved: {} };
+    }
+    if (Memory.containers[this.id].reserved == null) {
+        Memory.containers[this.id].reserved = {};
     }
     Memory.containers[this.id].reserved[id] = reserved;
     return reserved;
@@ -42,7 +50,7 @@ StructureContainer.prototype.canReserveResources = function (id, resources) {
         }
     }
     //Initialize memory space if undefined
-    if (Memory.containers[this.id] = null) {
+    if (Memory.containers[this.id] == null) {
         Memory.containers[this.id] = { reserved: {} };
     }
     return OK;
@@ -50,7 +58,10 @@ StructureContainer.prototype.canReserveResources = function (id, resources) {
 StructureContainer.prototype.availableResources = function () {
     //Initialize memory space if undefined
     //Initialize memory space if undefined
-    if (Memory.containers[this.id] = null) {
+    if (Memory.containers == null) {
+        Memory.containers = {};
+    }
+    if (Memory.containers[this.id] == null) {
         Memory.containers[this.id] = { reserved: {} };
     }
     let store = this.store;
@@ -65,13 +76,13 @@ StructureContainer.prototype.availableResources = function () {
 }
 StructureContainer.prototype.pickupReservation = function (id, target) {
     //Initialize memory space if undefined
-    if (Memory.containers[this.id] = null) {
+    if (Memory.containers[this.id] == null) {
         Memory.containers[this.id] = { reserved: {} };
     }
     let reservation = Memory.containers[this.id].reserved[id]
     if (reservation == null) return ERR_INVALID_ARGS;
     for (let resourceType in reservation) {
-        let transferResult = this.transfer(target, resourceType, resources[resourceType]);
+        let transferResult = this.transfer(target, resourceType, reservation[resourceType]);
         if (transferResult == ERR_NOT_ENOUGH_RESOURCES) {
             console.log('oooooh shit someones been stealin from me');
         }
@@ -167,18 +178,26 @@ module.exports.loop = function () {
 
     //RUN THE ECONOMY BIOTCH
     dispatcher.run();
+    foreman.run();
     economyManager();
     for (let room of _.values(Game.rooms)) {
         let spawnsNeedingEnergy = room.find(FIND_MY_STRUCTURES, { filter: structure => structure.structureType == STRUCTURE_SPAWN && dispatcher.getActualResources(structure) < structure.energyCapacity });
         if (spawnsNeedingEnergy.length) {
             let spawn = spawnsNeedingEnergy[0];
             console.log('creating energy order for spawn ' + spawn.name);
-            dispatcher.createOrder(spawn, { RESOURCE_ENERGY: spawn.energyCapacity - dispatcher.getActualResources(spawn) });
+            dispatcher.createOrder(spawn, { [RESOURCE_ENERGY]: spawn.energyCapacity - dispatcher.getActualResources(spawn) }, true);
+        }
+        let extensionsNeedingEnergy = room.find(FIND_MY_STRUCTURES, { filter: structure => structure.structureType == STRUCTURE_EXTENSION && dispatcher.getActualResources(structure) < structure.energyCapacity });
+        if (extensionsNeedingEnergy.length) {
+            let extension = extensionsNeedingEnergy[0];
+            console.log('creating energy order for extension ' + extension.id);
+            dispatcher.createOrder(extension, { [RESOURCE_ENERGY]: extension.energyCapacity - dispatcher.getActualResources(extension) }, true);
         }
         let overBilledSpawns = room.find(FIND_MY_STRUCTURES, { filter: structure => structure.structureType == STRUCTURE_SPAWN && dispatcher.getActualResources(structure) > structure.energyCapacity });
         for (let spawn of overBilledSpawns) {
             let spawnOrder = _.find(Memory.dispatcher.orders, order => order.recipient == spawn.id);
-            spawnOrder.remainingResources.RESOURCE_ENERGY -= dispatcher.getActualResources(spawn) - 300;
+            if (spawnOrder.remainingResources[RESOURCE_ENERGY] > 0) spawnOrder.remainingResources[RESOURCE_ENERGY] -= dispatcher.getActualResources(spawn) - 300;
+            else spawnOrder.transitResources[RESOURCE_ENERGY] -= dispatcher.getActualResources(spawn) - 300;
         }
     }
     for (let name in Game.creeps) {
@@ -189,8 +208,8 @@ module.exports.loop = function () {
         if (creep.memory.role == 'harvester') {
             roleHarvester.run(creep);
         }
-        if (creep.memory.role == 'upgrader') {
-            roleUpgrader.run(creep);
+        if (creep.memory.role == 'builder') {
+            roleBuilder.run(creep);
         }
         if (creep.memory.role == 'scout') {
             roleScout.run(creep);
@@ -205,7 +224,7 @@ module.exports.loop = function () {
             roleDrone.run(creep);
         }
         if (creep.memory.role == 'hauler') {
-            roleDrone.run(creep);
+            roleHauler.run(creep);
         }
     }
 }

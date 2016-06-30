@@ -7,89 +7,97 @@ var dispatcher = {
                 orders: {}
             }
         let finishedOrders = _.filter(Memory.dispatcher.orders, order => _.sum(order.remainingResources) + _.sum(order.transitResources) < 1)
-        for (order of finishedOrders) {
+        for (let order of finishedOrders) {
+            console.log('removing completed order ' + order.id)
+            delete Memory.dispatcher.orders[order.id];
+        }
+        let brokenOrders = _.filter(Memory.dispatcher.orders, order => _.sum(order.remainingResources) < 1 && (Game.getObjectById(order.recipient) == null || Game.getObjectById(order.recipient).energy >= Game.getObjectById(order.recipient).energyCapacity))
+        for (let order of brokenOrders) {
+            console.log('removing broken order ' + order.id)
             delete Memory.dispatcher.orders[order.id];
         }
         let understaffedOrders = _.filter(Memory.dispatcher.orders, order => _.sum(order.remainingResources) > 0);
-        let priorityOrder = _.max(understaffedOrders, order => _.sum(order.remainingResources));
-        if (priorityOrder && priorityOrder != Infinity) {
+        let priorityOrder = _.max(understaffedOrders, order => order.priority ? 9999999999 : Game.time - order.createdOn);
+        if (priorityOrder && priorityOrder != Infinity && priorityOrder != -Infinity) {
             let ownedRooms = _.filter(Game.rooms, (room) => room.controller && room.controller.my);
-            let containers = _.flatten(ownedRooms.map(room => room.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
-            let containerWithResources = _.find(containers, container => _.sum(priorityOrder.requiredResources) < _.sum(dispatcher.subtractResources(priorityOrder.requiredResources, dispatcher.getActualResources(container), true)) == OK);
+            let containers = _.flatten(ownedRooms.map(room => room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
+            let containerWithResources = _.min(containers, container => _.sum(dispatcher.subtractResources(priorityOrder.remainingResources, container.availableResources(), true)));
             if (containerWithResources) {
                 let hauler = this.findClosestAvailableHauler(containerWithResources.pos);
                 if (hauler) {
-                    hauler.memory.order = Memory.dispatcher.orders[priorityOrder.id];
-                    hauler.memory.pickupPos = containerWithResources.id;
-                    containerWithResources.reserveResources(hauler.id, this.orderTransitHaulQty(hauler, order, containerWithResources));
-                    hauler.memory.reservation = Memory.containers[containerWithResources.id].reserved[hauler.id];
+                    console.log('assigning ' + hauler.name + ' to order ' + priorityOrder.id);
+                    hauler.memory.order = Memory.dispatcher.orders[priorityOrder.id].id;
+                    if (_.sum(this.subtractResources(priorityOrder.remainingResources, hauler.carry)) < 1) {
+                        priorityOrder.remainingResources = this.subtractResources(priorityOrder.remainingResources, hauler.carry);
+                        priorityOrder.transitResources = this.addResources(priorityOrder.transitResources, hauler.carry);
+                    } else {
+                        let pickupResources = this.getCarryable(this.subtractResources(priorityOrder.remainingResources, hauler.carry), hauler.carryCapacity - _.sum(hauler.carry));
+                        let actualResources = containerWithResources.reserveResources(hauler.id, pickupResources);
+                        priorityOrder.remainingResources = this.subtractResources(priorityOrder.remainingResources, actualResources);
+                        priorityOrder.transitResources = this.addResources(priorityOrder.transitResources, actualResources);
+                        hauler.memory.pickupPos = containerWithResources.id;
+                    }
                 }
             }
         }
     },
-    createOrder: function (recipient, resources) {
+    createOrder: function (recipient, resources, important) {
         let orderId = md5(recipient.id + Game.time);
         Memory.dispatcher.orders[orderId] = {
             id: orderId,
             remainingResources: resources,
-            transitResources: { RESOURCE_ENERGY: 0 },
-            deliveredResources: { RESOURCE_ENERGY: 0 },
+            transitResources: { [RESOURCE_ENERGY]: 0 },
+            deliveredResources: { [RESOURCE_ENERGY]: 0 },
             haulers: [],
             recipient: recipient.id,
-            createdOn: Game.time
+            createdOn: Game.time,
+            priority: important
         };
         return orderId;
     },
-    orderTransitHaulQty: function (hauler, order, storage) {
-        let availableCapacity = hauler.carryCapacity;
-        let haulerResources = {}
-        for (let resourceType in resources) {
-            let fullAmount = storage.availableResources()[resourceType] < order.remainingResources[resourceType] ? storage.availableResources()[resourceType] : order.remainingResources[resourceType]
-            if (fullAmount > hauler.carryCapacity) {
-                haulerResources[resourceType] = hauler.carryCapacity;
-                order.remainingResources[resourceType] -= hauler.carryCapacity;
-                order.transitResources[resourceType] += hauler.carryCapacity;
-                return haulerResources;
-            } else {
-                haulerResources[resourceType] = fullAmount;
-                order.remainingResources[resourceType] -= fullAmount;
-                order.transitResources[resourceType] += fullAmount;
-            }
-        }
-        return haulerResources;
-    },
     findClosestAvailableHauler: function (pos) {
-        return pos.findClosest(FIND_MY_CREEPS, { filter: creep => creep.memory.role == 'hauler' && creep.memory.order == null });
+        return pos.findClosestByPath(FIND_MY_CREEPS, { filter: creep => creep.memory.role == 'hauler' && creep.memory.order == null });
     },
     getActualResources: function (recipient) {
         let orders = _.filter(Memory.dispatcher.orders, order => order.recipient == recipient.id);
         if (recipient.energyCapacity) {
-            let actual = orders.reduce((total, order) => total + order.remainingResources.RESOURCE_ENERGY + order.transitResources.RESOURCE_ENERGY, recipient.energy);
-            return actual;
+            if (orders.length) {
+                let actual = orders.reduce((total, order) => total + order.remainingResources[RESOURCE_ENERGY] + order.transitResources[RESOURCE_ENERGY], recipient.energy);
+                return actual;
+            } else {
+                return recipient.energy;
+            }
         }
         if (recipient.carry) {
             return orders.reduce((total, order) => dispatcher.addResources(total, dispatcher.addResources(order.remainingResources, order.transitResources)), recipient.carry);
         }
+        if (recipient.storage) {
+            return orders.reduce((total, order) => dispatcher.addResources(total, dispatcher.addResources(order.remainingResources, order.transitResources)), recipient.storage);
+        }
     },
     addResources: function (first, second) {
+        let result = {}
         for (resourceType in second) {
-            first[resourceType] += second[resourceType];
+            result[resourceType] = first[resourceType] + second[resourceType];
         }
-        return first;
+        return result;
     },
-    subtractResources: function (first, other, allowNegatives) {
+    subtractResources: function (first, second, allowNegatives) {
+        let result = {}
         for (resourceType in second) {
-            first[resourceType] -= second[resourceType];
-            if (allowNegatives && first[resourceType] < 0) first[resourceType] = 0
+            result[resourceType] = first[resourceType] - second[resourceType];
+            if (allowNegatives && result[resourceType] < 0) result[resourceType] = 0
         }
-        return first;
+        return result;
     },
-    getCarryable: function (first, other, allowNegatives) {
-        for (resourceType in second) {
-            first[resourceType] -= second[resourceType];
-            if (allowNegatives && first[resourceType] < 0) first[resourceType] = 0
+    getCarryable: function (resources, capacity) {
+        let result = {}
+        for (resourceType in resources) {
+            if (capacity < 1) return result;
+            result[resourceType] = resources[resourceType] > capacity ? capacity : resources[resourceType];
+            capacity -= result[resourceType];
         }
-        return first;
+        return result;
     }
 }
 module.exports = dispatcher;
