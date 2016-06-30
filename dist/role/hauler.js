@@ -35,19 +35,17 @@ var roleHauler = {
         for (resourceType in creep.carry) {
             if (creep.carry[resourceType] > 0) {
                 destinationCapacity = destination.energyCapacity ? destination.energyCapacity - destination.energy : destination.carry ? destination.carryCapacity - _.sum(destination.carry) : destination.storeCapacity - _.sum(destination.store)
-                console.log('destination capacity:' + destinationCapacity)
                 let transferAmount = creep.carry[resourceType] > destinationCapacity ? destinationCapacity : creep.carry[resourceType];
                 let transferResult = creep.transfer(destination, resourceType, transferAmount);
                 if (transferResult == OK) {
-                    console.log(creep.name + ' delivered ' + transferAmount + ' ' + resourceType + ' for order ' + order.id)
                     order.transitResources[resourceType] -= transferAmount;
-                } else {
+                } else if(transferResult != ERR_FULL) {
                     console.log('error occurred while delivering order ' + order.id + ' to ' + destination);
                 }
             }
         }
     },
-    createRole: function (room) {
+    createRole: function (room, cost) {
         var spawns = room.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_SPAWN } });
         if (!spawns.length) {
             console.log('Room ' + room.name + ' has no spawns');
@@ -55,7 +53,7 @@ var roleHauler = {
         }
         var spawn = spawns[0];
         var body = [];
-        switch (room.energyAvailable) {
+        switch (cost > 550 ? 550 : cost) {
             case 550:
                 body = [CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE];
                 break;

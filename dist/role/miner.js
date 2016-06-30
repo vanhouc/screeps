@@ -13,14 +13,14 @@ let roleMiner = {
         } else
             creep.harvest(Game.getObjectById(creep.memory.source))
     },
-    createRole: function (room, source, container) {
+    createRole: function (room, source, container, cost) {
         var spawns = room.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_SPAWN } });
         if (!spawns.length) {
             return;
         }
         var spawn = spawns[0];
         var body = [];
-        switch (room.energyAvailable) {
+        switch (cost > 550 ? 550 : cost) {
             case 550:
                 body = [WORK, WORK, WORK, WORK, WORK, MOVE];
                 break;

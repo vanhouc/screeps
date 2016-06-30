@@ -15,21 +15,31 @@ module.exports = function () {
     var availableSources = sources.filter(source => !_.any(Game.creeps, creep => creep.memory.source == source.id) && !_.any(containerSources, containerSource => containerSource.source.id == source.id));
     if (containerSources.length) {
         let miners = _.filter(Game.creeps, creep => creep.memory.role == 'miner');
-        let availableContainerSource = _.find(containerSources, source => !miners.some(miner => miner.memory.source == source.source.id))
-        if (availableContainerSource) {
-            return roleMiner.createRole(ownedRooms[0], availableContainerSource.source.id, availableContainerSource.container.id)
-        }
         let haulers = _.filter(Game.creeps, creep => creep.memory.role == 'hauler');
-        if (!haulers.length || haulers.length < _.filter(Game.structures, structure => structure.structureType == STRUCTURE_SPAWN || structure.structureType == STRUCTURE_EXTENSION).length) {
-            return roleHauler.createRole(ownedRooms[0]);
-        }
         let builders = _.filter(Game.creeps, creep => creep.memory.role == 'builder');
-        if (!builders.length || builders.length < 3) {
-            return roleBuilder.createRole(ownedRooms[0]);
+        let availableContainerSource = _.find(containerSources, source => !miners.some(miner => miner.memory.source == source.source.id));
+        //Bootstrap economy
+        if (miners.length < 1) return roleMiner.createRole(ownedRooms[0], availableContainerSource.source.id, availableContainerSource.container.id, 300)
+        if (haulers.length < 1) return roleHauler.createRole(ownedRooms[0], 300);
+        //Regular economy
+        if (availableContainerSource) {
+            return roleMiner.createRole(ownedRooms[0], availableContainerSource.source.id, availableContainerSource.container.id, ownedRooms[0].energyCapacityAvailable)
+        }
+        if (haulers.length < _.filter(Game.structures, structure => structure.structureType == STRUCTURE_SPAWN || structure.structureType == STRUCTURE_EXTENSION).length) {
+            return roleHauler.createRole(ownedRooms[0], ownedRooms[0].energyCapacityAvailable);
+        }
+        if (builders.length < 3) {
+            return roleBuilder.createRole(ownedRooms[0], ownedRooms[0].energyCapacityAvailable);
         }
     }
+    //If no containers setup, make prospectors
     if (availableSources.length) {
-        return roleProspector.createRole(ownedRooms[0], availableSources[0].id);
+        return roleProspector.createRole(ownedRooms[0], availableSources[0]);
+    }
+    //If there are unassisted prospectors spawn an assistant
+    let prospectorNeedingHelp = _.filter(Game.creeps, creep => creep.memory.role == 'prospector').find(prospector => !_.any(Game.creeps, helper => helper.memory.helper || helper.memory.helper == prospector.id));
+    if (prospectorNeedingHelp) {
+        return roleProspector.createRole(ownedRooms[0], Game.getObjectById(prospectorNeedingHelp.memory.source), prospectorNeedingHelp);
     }
 
 }

@@ -1,4 +1,3 @@
-let _ = require('lodash');
 let md5 = require('md5');
 let utility = require('utility');
 let roleBuilder = require('builder');
@@ -24,7 +23,8 @@ Creep.prototype.transferAll = function (target) {
 StructureContainer.prototype.reserveResources = function (id, resources) {
     let reserved = {};
     for (let resourceType in resources) {
-        if (this.availableResources()[resourceType] < resources[resourceType]) {
+        let available = this.availableResources()[resourceType] || 0
+        if (available < resources[resourceType]) {
             reserved[resourceType] = this.availableResources()[resourceType];
         } else {
             reserved[resourceType] = resources[resourceType];
@@ -65,14 +65,7 @@ StructureContainer.prototype.availableResources = function () {
         Memory.containers[this.id] = { reserved: {} };
     }
     let store = this.store;
-    for (let reservation of _.values(Memory.containers[this.id].reserved)) {
-        for (let resourceType in reservation) {
-            if (store[resourceType] >= reservation[resourceType]) {
-                store[resourceType] = store[resourceType] - reservation[resourceType];
-            }
-        }
-    }
-    return store;
+    return _.values(Memory.containers[this.id].reserved).reduce((total, reservation) => dispatcher.subtractResources(total, reservation), store)
 }
 StructureContainer.prototype.pickupReservation = function (id, target) {
     //Initialize memory space if undefined
@@ -85,6 +78,8 @@ StructureContainer.prototype.pickupReservation = function (id, target) {
         let transferResult = this.transfer(target, resourceType, reservation[resourceType]);
         if (transferResult == ERR_NOT_ENOUGH_RESOURCES) {
             console.log('oooooh shit someones been stealin from me');
+            delete Memory.containers[this.id].reserved[id];
+            return transferResult;
         }
         if (transferResult == OK) {
             delete reservation[resourceType];
@@ -92,7 +87,6 @@ StructureContainer.prototype.pickupReservation = function (id, target) {
                 delete Memory.containers[this.id].reserved[id];
             return transferResult;
         }
-
     }
     return ERR_NOT_ENOUGH_RESOURCES;
 }
@@ -180,6 +174,16 @@ module.exports.loop = function () {
     dispatcher.run();
     foreman.run();
     economyManager();
+    let ownedRooms = _.filter(Game.rooms, (room) => room.controller && room.controller.my);
+    let containers = _.flatten(ownedRooms.map(room => room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
+    for (container of containers) {
+        for (reservation in Memory.containers[container.id].reservations) {
+            if (Game.getObjectById(reservation).memory.pickupPos != reservation) {
+                console.log('removing bad reservation');
+                delete Memory.containers[container.id].reservations[reservation];
+            }
+        }
+    }
     for (let room of _.values(Game.rooms)) {
         let spawnsNeedingEnergy = room.find(FIND_MY_STRUCTURES, { filter: structure => structure.structureType == STRUCTURE_SPAWN && dispatcher.getActualResources(structure) < structure.energyCapacity });
         if (spawnsNeedingEnergy.length) {

@@ -6,24 +6,38 @@ var dispatcher = {
             Memory.dispatcher = {
                 orders: {}
             }
-        let finishedOrders = _.filter(Memory.dispatcher.orders, order => _.sum(order.remainingResources) + _.sum(order.transitResources) < 1)
+        let finishedOrders = _.filter(Memory.dispatcher.orders, order => _.sum(this.addResources(order.remainingResources, order.transitResources)) < 1)
         for (let order of finishedOrders) {
             console.log('removing completed order ' + order.id)
             delete Memory.dispatcher.orders[order.id];
         }
-        let brokenOrders = _.filter(Memory.dispatcher.orders, order => _.sum(order.remainingResources) < 1 && (Game.getObjectById(order.recipient) == null || Game.getObjectById(order.recipient).energy >= Game.getObjectById(order.recipient).energyCapacity))
+        let missingDeliveryOrders = _.filter(Memory.dispatcher.orders, order => !_.any(Game.creeps, creep => creep.memory.role == 'hauler' && creep.memory.order == order.id) && _.sum(order.transitResources) > 0);
+        for (let order of missingDeliveryOrders) {
+            console.log('re-requesting resources for order missing delivery ' + order.id);
+            order.remainingResources = this.addResources(order.remainingResources, order.transitResources);
+            order.transitResources = this.subtractResources(order.transitResources, order.transitResources);
+        }
+        let brokenOrders = _.filter(Memory.dispatcher.orders, order => Game.getObjectById(order.recipient) == null || Game.getObjectById(order.recipient).energy >= Game.getObjectById(order.recipient).energyCapacity)
         for (let order of brokenOrders) {
             console.log('removing broken order ' + order.id)
             delete Memory.dispatcher.orders[order.id];
         }
         let understaffedOrders = _.filter(Memory.dispatcher.orders, order => _.sum(order.remainingResources) > 0);
-        let priorityOrder = _.max(understaffedOrders, order => order.priority ? 9999999999 : Game.time - order.createdOn);
+        let priorityOrder = _.min(understaffedOrders, order => order.priority ? -100000 : _.sum(order.transitResources));
         if (priorityOrder && priorityOrder != Infinity && priorityOrder != -Infinity) {
             let ownedRooms = _.filter(Game.rooms, (room) => room.controller && room.controller.my);
             let containers = _.flatten(ownedRooms.map(room => room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
-            let containerWithResources = _.min(containers, container => _.sum(dispatcher.subtractResources(priorityOrder.remainingResources, container.availableResources(), true)));
-            if (containerWithResources) {
-                let hauler = this.findClosestAvailableHauler(containerWithResources.pos);
+            let availableContainers = containers.filter(container => _.sum(dispatcher.subtractResources(priorityOrder.remainingResources, container.availableResources(), true)) < 1);
+            //If no containers have the resources to complete the job find a container that has any of the jobs needed resources
+            if (!availableContainers.length) {
+                console.log('looking for any container')
+                availableContainers = containers.filter(container => _.sum(priorityOrder.remainingResources) >_.sum(dispatcher.subtractResources(priorityOrder.remainingResources, container.availableResources(), true, true)));
+            }
+            if (availableContainers.length) {
+                let container = Game.getObjectById(priorityOrder.recipient).pos.findClosestByPath(availableContainers);
+                if (container == null) return;
+                console.log(_.sum(container.availableResources()))
+                let hauler = this.findClosestAvailableHauler(container.pos);
                 if (hauler) {
                     console.log('assigning ' + hauler.name + ' to order ' + priorityOrder.id);
                     hauler.memory.order = Memory.dispatcher.orders[priorityOrder.id].id;
@@ -31,11 +45,11 @@ var dispatcher = {
                         priorityOrder.remainingResources = this.subtractResources(priorityOrder.remainingResources, hauler.carry);
                         priorityOrder.transitResources = this.addResources(priorityOrder.transitResources, hauler.carry);
                     } else {
-                        let pickupResources = this.getCarryable(this.subtractResources(priorityOrder.remainingResources, hauler.carry), hauler.carryCapacity - _.sum(hauler.carry));
-                        let actualResources = containerWithResources.reserveResources(hauler.id, pickupResources);
+                        let pickupResources = this.getCarryable(this.subtractResources(priorityOrder.remainingResources, hauler.carry, true, true), hauler.carryCapacity - _.sum(hauler.carry));
+                        let actualResources = container.reserveResources(hauler.id, pickupResources);
                         priorityOrder.remainingResources = this.subtractResources(priorityOrder.remainingResources, actualResources);
                         priorityOrder.transitResources = this.addResources(priorityOrder.transitResources, actualResources);
-                        hauler.memory.pickupPos = containerWithResources.id;
+                        hauler.memory.pickupPos = container.id;
                     }
                 }
             }
@@ -82,10 +96,11 @@ var dispatcher = {
         }
         return result;
     },
-    subtractResources: function (first, second, allowNegatives) {
+    subtractResources: function (first, second, allowNegatives, onlyPresentTypes) {
         let result = {}
         for (resourceType in second) {
-            result[resourceType] = first[resourceType] - second[resourceType];
+            if (!onlyPresentTypes || first[resourceType] != null)
+                result[resourceType] = first[resourceType] - second[resourceType];
             if (allowNegatives && result[resourceType] < 0) result[resourceType] = 0
         }
         return result;
