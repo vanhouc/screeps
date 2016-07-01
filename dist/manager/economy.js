@@ -12,7 +12,7 @@ module.exports = function () {
     var drones = _.filter(Game.creeps, creep => creep.memory.role == 'drone');
     var containers = _.flatten(ownedRooms.map(room => room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
     var containerSources = sources.map(source => { return { source: source, container: containers.find(container => source.pos.isNearTo(container)) } }).filter(tuple => tuple.container);
-    var availableSources = sources.filter(source => !_.any(Game.creeps, creep => creep.memory.source == source.id) && !_.any(containerSources, containerSource => containerSource.source.id == source.id));
+    var availableSources = sources.filter(source => !_.any(Game.creeps, creep => creep.memory.source == source.id) || !_.any(containerSources, containerSource => containerSource.source.id == source.id));
     if (containerSources.length) {
         let miners = _.filter(Game.creeps, creep => creep.memory.role == 'miner');
         let haulers = _.filter(Game.creeps, creep => creep.memory.role == 'hauler');

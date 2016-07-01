@@ -177,10 +177,10 @@ module.exports.loop = function () {
     let ownedRooms = _.filter(Game.rooms, (room) => room.controller && room.controller.my);
     let containers = _.flatten(ownedRooms.map(room => room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
     for (container of containers) {
-        for (reservation in Memory.containers[container.id].reservations) {
-            if (Game.getObjectById(reservation).memory.pickupPos != reservation) {
+        for (reservation in Memory.containers[container.id].reserved) {
+            if (Game.getObjectById(reservation) == null || Game.getObjectById(reservation).memory.pickupPos != reservation || _.sum(Memory.containers[container.id].reserved[reservation]) < 1) {
                 console.log('removing bad reservation');
-                delete Memory.containers[container.id].reservations[reservation];
+                delete Memory.containers[container.id].reserved[reservation];
             }
         }
     }
