@@ -38,7 +38,11 @@ var dispatcher = {
             if (availableContainers.length) {
                 let container = Game.getObjectById(priorityOrder.recipient).pos.findClosestByPath(availableContainers);
                 if (container == null) return;
+<<<<<<< HEAD
                 console.log(`${container.id} has ${_.sum(container.availableResources())} actual available resources`);
+=======
+                console.log('available resources: ' + _.sum(container.availableResources()))
+>>>>>>> origin/javascript
                 let hauler = this.findClosestAvailableHauler(container.pos);
                 if (hauler) {
                     console.log('assigning ' + hauler.name + ' to order ' + priorityOrder.id);
