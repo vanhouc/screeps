@@ -12,7 +12,6 @@ module.exports = function () {
     var drones = _.filter(Game.creeps, creep => creep.memory.role == 'drone');
     var containers = _.flatten(ownedRooms.map(room => room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
     var containerSources = sources.map(source => { return { source: source, container: containers.find(container => source.pos.isNearTo(container)) } }).filter(tuple => tuple.container);
-<<<<<<< HEAD
     var availableSources = sources.filter(source => !_.any(Game.creeps, creep => creep.memory.source == source.id) && !_.any(containerSources, containerSource => containerSource.source.id == source.id));
     let prospectorNeedingHelp = _.filter(Game.creeps, creep => creep.memory.role == 'prospector').find(prospector => !_.any(Game.creeps, helper => helper.memory.helper || helper.memory.helper == prospector.id));
     if (prospectorNeedingHelp) {
@@ -24,9 +23,6 @@ module.exports = function () {
     if (availableSources.length) {
         return roleProspector.createRole(ownedRooms[0], availableSources[0]);
     }
-=======
-    var availableSources = sources.filter(source => !_.any(Game.creeps, creep => creep.memory.source == source.id) || !_.any(containerSources, containerSource => containerSource.source.id == source.id));
->>>>>>> origin/javascript
     if (containerSources.length) {
         let miners = _.filter(Game.creeps, creep => creep.memory.role == 'miner');
         let haulers = _.filter(Game.creeps, creep => creep.memory.role == 'hauler');

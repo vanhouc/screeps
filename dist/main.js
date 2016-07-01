@@ -182,7 +182,6 @@ module.exports.loop = function () {
     economyManager();
     let ownedRooms = _.filter(Game.rooms, (room) => room.controller && room.controller.my);
     let containers = _.flatten(ownedRooms.map(room => room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
-<<<<<<< HEAD
     for (containerId in Memory.containers) {
         if (Game.getObjectById(containerId) == null) {
             console.log('removing memory for non-existant container ' + containerId);
@@ -191,11 +190,6 @@ module.exports.loop = function () {
         } 
         for (reservation in Memory.containers[containerId].reservations) {
             if (Game.getObjectById(reservation).memory.pickupPos != reservation) {
-=======
-    for (container of containers) {
-        for (reservation in Memory.containers[container.id].reserved) {
-            if (Game.getObjectById(reservation) == null || Game.getObjectById(reservation).memory.pickupPos != reservation || _.sum(Memory.containers[container.id].reserved[reservation]) < 1) {
->>>>>>> origin/javascript
                 console.log('removing bad reservation');
                 delete Memory.containers[container.id].reserved[reservation];
             }
