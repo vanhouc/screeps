@@ -6,6 +6,8 @@ var dispatcher = {
             Memory.dispatcher = {
                 orders: {}
             }
+        if (Memory.dispatcher.orders == null)
+            Memory.dispatcher.orders = {};
         let finishedOrders = _.filter(Memory.dispatcher.orders, order => _.sum(this.addResources(order.remainingResources, order.transitResources)) < 1)
         for (let order of finishedOrders) {
             console.log('removing completed order ' + order.id)
@@ -31,12 +33,12 @@ var dispatcher = {
             //If no containers have the resources to complete the job find a container that has any of the jobs needed resources
             if (!availableContainers.length) {
                 console.log('looking for any container')
-                availableContainers = containers.filter(container => _.sum(priorityOrder.remainingResources) >_.sum(dispatcher.subtractResources(priorityOrder.remainingResources, container.availableResources(), true, true)));
+                availableContainers = containers.filter(container => _.sum(priorityOrder.remainingResources) > _.sum(dispatcher.subtractResources(priorityOrder.remainingResources, container.availableResources(), true, true)));
             }
             if (availableContainers.length) {
                 let container = Game.getObjectById(priorityOrder.recipient).pos.findClosestByPath(availableContainers);
                 if (container == null) return;
-                console.log(_.sum(container.availableResources()))
+                console.log(`${container.id} has ${_.sum(container.availableResources())} actual available resources`);
                 let hauler = this.findClosestAvailableHauler(container.pos);
                 if (hauler) {
                     console.log('assigning ' + hauler.name + ' to order ' + priorityOrder.id);
@@ -56,6 +58,7 @@ var dispatcher = {
         }
     },
     createOrder: function (recipient, resources, important) {
+        if (_.sum(resources) < 1) return null;
         let orderId = md5(recipient.id + Game.time);
         Memory.dispatcher.orders[orderId] = {
             id: orderId,

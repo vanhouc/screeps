@@ -13,6 +13,16 @@ module.exports = function () {
     var containers = _.flatten(ownedRooms.map(room => room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
     var containerSources = sources.map(source => { return { source: source, container: containers.find(container => source.pos.isNearTo(container)) } }).filter(tuple => tuple.container);
     var availableSources = sources.filter(source => !_.any(Game.creeps, creep => creep.memory.source == source.id) && !_.any(containerSources, containerSource => containerSource.source.id == source.id));
+    let prospectorNeedingHelp = _.filter(Game.creeps, creep => creep.memory.role == 'prospector').find(prospector => !_.any(Game.creeps, helper => helper.memory.helper || helper.memory.helper == prospector.id));
+    if (prospectorNeedingHelp) {
+        console.log('IM A PROSPECTOR AND I AM IN TROUBLE')
+        return roleProspector.createRole(ownedRooms[0], Game.getObjectById(prospectorNeedingHelp.memory.source), prospectorNeedingHelp);
+    }
+    console.log(availableSources.length);
+    //If no containers setup, make prospectors
+    if (availableSources.length) {
+        return roleProspector.createRole(ownedRooms[0], availableSources[0]);
+    }
     if (containerSources.length) {
         let miners = _.filter(Game.creeps, creep => creep.memory.role == 'miner');
         let haulers = _.filter(Game.creeps, creep => creep.memory.role == 'hauler');
@@ -32,14 +42,7 @@ module.exports = function () {
             return roleBuilder.createRole(ownedRooms[0], ownedRooms[0].energyCapacityAvailable);
         }
     }
-    //If no containers setup, make prospectors
-    if (availableSources.length) {
-        return roleProspector.createRole(ownedRooms[0], availableSources[0]);
-    }
     //If there are unassisted prospectors spawn an assistant
-    let prospectorNeedingHelp = _.filter(Game.creeps, creep => creep.memory.role == 'prospector').find(prospector => !_.any(Game.creeps, helper => helper.memory.helper || helper.memory.helper == prospector.id));
-    if (prospectorNeedingHelp) {
-        return roleProspector.createRole(ownedRooms[0], Game.getObjectById(prospectorNeedingHelp.memory.source), prospectorNeedingHelp);
-    }
+
 
 }

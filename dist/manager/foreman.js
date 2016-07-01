@@ -40,7 +40,7 @@ var foreman = {
         for (let builder of needsResources) {
             if (Game.getObjectById(builder.memory.job).hits) {
                 console.log('creating order for repair job ' + builder.name);
-                dispatcher.createOrder(builder, { [RESOURCE_ENERGY]: (Game.getObjectById(builder.memory.job).hitsMax - Game.getObjectById(builder.memory.job).hits) / 100 });
+                dispatcher.createOrder(builder, { [RESOURCE_ENERGY]: builder.carryCapacity - _.sum(builder.carry) });
             } else if (Game.getObjectById(builder.memory.job).structureType == STRUCTURE_CONTROLLER) {
                 console.log('creating order for upgrade job ' + builder.memory.job + ', Quantity: ' + builder.carryCapacity - _.sum(builder.carry));
                 dispatcher.createOrder(builder, { [RESOURCE_ENERGY]: builder.carryCapacity - _.sum(builder.carry) });

@@ -129,6 +129,12 @@ RoomObject.prototype.findClosest = function (type, findOpts, range, pathOpts) {
     if (!goal) return null;
     return Game.getObjectById(goal.id);
 }
+Creep.prototype.availableCarry = function() {
+    return this.carryCapacity - _.sum(this.carry);
+}
+Creep.prototype.actualAvailableCarry = function() {
+    return this.carryCapacity - _.sum(dispatcher.getActualResources(this));
+}
 Creep.prototype.getCarryPerTick = function (dest) {
     let spawn = this.room.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_SPAWN } })[0];
     let route = PathFinder.search(spawn.pos, dest.pos).path
@@ -176,8 +182,13 @@ module.exports.loop = function () {
     economyManager();
     let ownedRooms = _.filter(Game.rooms, (room) => room.controller && room.controller.my);
     let containers = _.flatten(ownedRooms.map(room => room.find(FIND_STRUCTURES, { filter: { structureType: STRUCTURE_CONTAINER } })));
-    for (container of containers) {
-        for (reservation in Memory.containers[container.id].reservations) {
+    for (containerId in Memory.containers) {
+        if (Game.getObjectById(containerId) == null) {
+            console.log('removing memory for non-existant container ' + containerId);
+            delete Memory.containers[containerId];
+            continue;
+        } 
+        for (reservation in Memory.containers[containerId].reservations) {
             if (Game.getObjectById(reservation).memory.pickupPos != reservation) {
                 console.log('removing bad reservation');
                 delete Memory.containers[container.id].reservations[reservation];
