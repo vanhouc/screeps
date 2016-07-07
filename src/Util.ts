@@ -1,8 +1,8 @@
-export class Util {
-	static getBlueprintCost(blueprint: string[]) {
+export namespace Util {
+	export function getBlueprintCost(blueprint: string[]) {
 		return _.sum(blueprint.map(bodyPart => BODYPART_COST[bodyPart]));
 	}
-	static reversePath(path: PathStep[]) {
+	export function reversePath(path: PathStep[]) {
 		return path.reverse().forEach(step => {
 			step.dx *= -1;
 			step.dy *= -1;

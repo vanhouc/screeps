@@ -12,8 +12,9 @@
   },
   "devDependencies": {
     "gulp": "~3.9.0",
-    "tsproject": "~1.2.0-rc.6",
-    "tsd": "~0.6.5"
+    "recursive-readdir": "^2.0.0",
+    "tsd": "~0.6.5",
+    "tsproject": "~1.2.0-rc.6"
   },
   "repository": {
     "type": "git",

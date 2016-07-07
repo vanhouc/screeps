@@ -10,6 +10,9 @@ export interface HarvesterInterface {
  */
 export class Harvester implements HarvesterInterface {
     public creep: Creep = null;
+    get memory(): HarvesterCreepMemory {
+        return this.creep._memory.harvester;
+    }
     get source(): Source {
         return Game.getObjectById<Source>(this.creep._memory.harvester.source)
     }

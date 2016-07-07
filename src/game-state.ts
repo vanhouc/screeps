@@ -1,5 +1,5 @@
 export enum GameState {
-    VeryEarly,
+    Start,
     Early,
     Mid,
     Late,

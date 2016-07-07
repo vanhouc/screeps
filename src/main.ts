@@ -5,8 +5,8 @@
  *
  * Write your code to GameManager class in ./src/start/game-manager.ts
  */
-/// <reference path="../_reference.ts" />
-import {GameManager} from './../game-manager';
+/// <reference path="_reference.ts" />
+import {GameManager} from './game-manager';
 declare var module: any;
 
 /*
