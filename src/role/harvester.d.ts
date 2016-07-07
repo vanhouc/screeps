@@ -1,6 +1,6 @@
 interface CreepMemory {
     harvester: HarvesterCreepMemory
 }
-declare class HarvesterCreepMemory {
+interface HarvesterCreepMemory {
     source: string
 }
