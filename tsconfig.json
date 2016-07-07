@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+	"module": "system",
+	"target": "es5",
+	"sourceMap": false,
+	"declaration": true,
+	"outFile": "./screeps.js"
+    },
+    "exclude": ["node_modules", "dist"],
+    "filesGlob": [
+	"./src/**/*.ts"
+    ]
+
+}

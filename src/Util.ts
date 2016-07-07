@@ -1,6 +1,4 @@
-/// <reference path="_references.ts" />
-
-class Util {
+export class Util {
 	static getBlueprintCost(blueprint: string[]) {
 		return _.sum(blueprint.map(bodyPart => BODYPART_COST[bodyPart]));
 	}

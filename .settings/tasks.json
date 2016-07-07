@@ -31,7 +31,7 @@
 // A task runner that calls the Typescript compiler (tsc) and
 // compiles based on a tsconfig.json file that is present in
 // the root of the folder open in VSCode
-/*
+
 {
 	"version": "0.1.0",
 
@@ -51,27 +51,27 @@
 	// in the output.
 	"problemMatcher": "$tsc"
 }
-*/
+
 
 // A task runner configuration for gulp. Gulp provides a less task
 // which compiles less to css.
 
-{
-	"version": "0.1.0",
-	"command": "gulp",
-	"isShellCommand": true,
-	"tasks": [
-		{
-			"taskName": "build",
-			// Make this the default build command.
-			"isBuildCommand": true,
-			// Show the output window only if unrecognized errors occur.
-			"showOutput": "silent",
-			// Use the standard less compilation problem matcher.
-			"problemMatcher": "$gulp-tsc"
-		}
-	]
-}
+// {
+// 	"version": "0.1.0",
+// 	"command": "gulp",
+// 	"isShellCommand": true,
+// 	"tasks": [
+// 		{
+// 			"taskName": "build",
+// 			// Make this the default build command.
+// 			"isBuildCommand": true,
+// 			// Show the output window only if unrecognized errors occur.
+// 			"showOutput": "silent",
+// 			// Use the standard less compilation problem matcher.
+// 			"problemMatcher": "$gulp-tsc"
+// 		}
+// 	]
+// }
 
 
 // Uncomment the following section to use gulp in a watching mode that compiles a
