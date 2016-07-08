@@ -1,5 +1,5 @@
 interface Room {
-    _memory: RoomMemory;
+    _memory(): RoomMemory;
     /**
      * Gets a cost matrix that includes buildings and construction sites
      */

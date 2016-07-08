@@ -14,7 +14,7 @@ export namespace GameManager {
      * @type {string}
      */
     export var sampleVariable: string = "This is public variable";
-    export var state: GameState = GameState.Early;
+    export var state: GameState = GameState.Start;
 
     export function globalBootstrap() {
         // Set up your global objects.
@@ -24,8 +24,14 @@ export namespace GameManager {
         // You should extend prototypes before game loop in here.
         console.log("This method is only run when new global is created by Screeps cycle");
         sampleVariable = "This is how you can use variables in GameManager";
-        Room.prototype._memory = Room.prototype.memory;
-        Creep.prototype._memory = Creep.prototype.memory;
+        Room.prototype._memory = function() {
+            let that = this as Room;
+            return that.memory as RoomMemory;
+        }
+        Creep.prototype._memory = function () {
+            let that = this as Creep;
+            return that.memory as CreepMemory;
+        }
         Room.prototype.getCostMatrix = function () {
             //damnit typescript
             let that = this as Room;
@@ -63,5 +69,4 @@ export namespace GameManager {
                 break;
         }
     }
-
 }

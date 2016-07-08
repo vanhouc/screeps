@@ -20,10 +20,13 @@ export namespace EnergyMonitor {
         return creepEnergy + usableEnergy + storedEnergy;
     }
     export function recordRoom(room: Room) {
-        room._memory.energy.history.push(getRoomEnergy(room));
+        if (room._memory().energy == null) {
+            room.memory.energy = {history: []};
+        }
+        room._memory().energy.history.push(getRoomEnergy(room));
     }
     export function getRoomAverage(room: Room) {
-        return Math.sqrt(room._memory.energy.history.reduce((total, historicalEnergy) => total * historicalEnergy, 1));
+        return Math.sqrt(room._memory().energy.history.reduce((total, historicalEnergy) => total * historicalEnergy, 1));
     }
     export function run() {
         for (let roomName in Game.rooms) {

@@ -5,28 +5,29 @@ export interface HarvesterInterface {
     getHarvesters(): HarvesterInterface[];
     tryHarvest(target: Source): number;
 }
+import {Role} from "./role"
 /**
  * Wraps a creep with harvesting functionality
  */
 export class Harvester implements HarvesterInterface {
     public creep: Creep = null;
     get memory(): HarvesterCreepMemory {
-        return this.creep._memory.harvester;
+        return this.creep._memory().harvester;
     }
     get source(): Source {
-        return Game.getObjectById<Source>(this.creep._memory.harvester.source)
+        return Game.getObjectById<Source>(this.creep._memory().harvester.source)
     }
     set source(newSource) {
         if (newSource == null) return;
-        this.creep._memory.harvester.source = newSource.id;
+        this.creep._memory().harvester.source = newSource.id;
     }
     public constructor(creep: Creep) {
         this.creep = creep;
-        if (this.creep._memory.role != Role.Harvester) {
-            this.creep._memory.role = Role.Harvester;
+        if (this.creep._memory().role != Role.Harvester) {
+            this.creep._memory().role = Role.Harvester;
         }
-        if (this.creep._memory.harvester == null) {
-            this.creep._memory.harvester = { source: null };
+        if (this.creep._memory().harvester == null) {
+            this.creep._memory().harvester = { source: null };
         }
     }
     public setCreep(creep: Creep) {

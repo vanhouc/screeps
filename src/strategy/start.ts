@@ -2,6 +2,7 @@ import {GameState} from "../game-state"
 import {Strategy} from "./strategy"
 import {Prospector} from "./../role/prospector"
 import {EnergyMonitor} from "./../monitor/energy-monitor"
+import {Role} from "./../role/role"
 export type SpawnOrExtension = StructureSpawn | StructureExtension
 export class StartStrategy implements Strategy {
     public state = GameState.Start;
@@ -20,6 +21,7 @@ export class StartStrategy implements Strategy {
         });
     }
     public execute() {
+        console.log(`we're inside startstrategy`);
         this.manageProspectors();
     }
     public recommend() {
@@ -43,10 +45,12 @@ export class StartStrategy implements Strategy {
     }
     manageProspectors() {
         let availableSource = this.availableSources()[0];
-        if (availableSource == null) {
+        console.log(`available source: ${availableSource}`)
+        if (availableSource != null) {
             let spawn = _.find(Game.spawns, spawn => spawn.room.name == this.room.name);
+            console.log(`selected spawn: ${spawn}`)
             if (spawn) {
-                spawn.createCreep([WORK, CARRY, MOVE], undefined, {prospector: {source: availableSource.id, pos: null, assistants: [], site: null}});
+                spawn.createCreep([WORK, CARRY, MOVE], undefined, {role: Role.Prospector, prospector: {source: availableSource.id, pos: null, assistants: [], site: null}});
             }
         }
         for (let prospector of this.prospectors) {

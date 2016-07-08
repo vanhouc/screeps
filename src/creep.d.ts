@@ -1,11 +1,6 @@
-declare enum Role {
-    Harvester,
-    Prospector
-}
 interface Creep {
-    _memory: CreepMemory
+    _memory(): CreepMemory
 }
 interface CreepMemory {
-    role: Role;
-    path: RoomPosition[];
+    path: { path: RoomPosition[], ops: number };
 }
