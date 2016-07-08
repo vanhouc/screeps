@@ -36,7 +36,6 @@ export class Prospector {
                 return this.creep.harvest(Game.getObjectById<Source>(this.memory.source))
             }
         } else {
-            console.log('FART')
             if (this.creep._memory().path == null || this.creep._memory().path.path.length < 1) {
 
             } else {

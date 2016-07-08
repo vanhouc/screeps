@@ -1,6 +1,12 @@
 import {GameState} from "./game-state";
 import {EnergyMonitor} from "./monitor/energy-monitor"
 import {StartStrategy} from "./strategy/start"
+
+declare global {
+    interface RoomPosition {
+        isWalkable(): boolean;
+    }
+}
 /**
  * Singleton object.
  * Since singleton classes are considered anti-pattern in Typescript, we can effectively use namespaces.
@@ -15,7 +21,12 @@ export namespace GameManager {
      */
     export var sampleVariable: string = "This is public variable";
     export var state: GameState = GameState.Start;
-
+    export function isRoomObject(x: any): x is RoomObject {
+        return (<RoomObject>x).pos !== undefined;
+    }
+    export function isRoomObjectArray(x: any): x is RoomObject[] {
+        return (<RoomObject[]>x).every(obj => obj.pos !== undefined);
+    }
     export function globalBootstrap() {
         // Set up your global objects.
         // This method is executed only when Screeps system instantiated new "global".
@@ -24,13 +35,33 @@ export namespace GameManager {
         // You should extend prototypes before game loop in here.
         console.log("This method is only run when new global is created by Screeps cycle");
         sampleVariable = "This is how you can use variables in GameManager";
-        Room.prototype._memory = function() {
+        Room.prototype._memory = function () {
             let that = this as Room;
             return that.memory as RoomMemory;
+        }
+        RoomPosition.prototype.isWalkable = function() {
+            let posObjects =
         }
         Creep.prototype._memory = function () {
             let that = this as Creep;
             return that.memory as CreepMemory;
+        }
+        Creep.prototype.travelTo = function (goal: RoomPosition | RoomObject | RoomPosition[] | RoomObject[]) {
+            let goals: { pos: RoomPosition, range?: number }[] = [];
+            if (Array.isArray(goal)) {
+                if (isRoomObjectArray(goal)) {
+                    goals = goal.map(roomObj => { return { pos: roomObj.pos, range: }})
+                } else {
+                    goals = goal.map(pos => {return {pos: pos, range: }})
+                }
+            }
+            let that = this as Creep;
+            for (let i = 0; i < path.path.length - 1; i++) {
+                if (that.pos.isEqualTo(path.path[i])) {
+                    if (i + 1 >= path.path.length)
+                        return that.move(that.pos.getDirectionTo(path.path[i + 1]));
+                }
+            }
         }
         Room.prototype.getCostMatrix = function () {
             //damnit typescript
