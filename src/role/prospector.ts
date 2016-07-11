@@ -12,13 +12,13 @@ export class Prospector {
             this.creep._memory().prospector = {
                 assistants: [],
                 pos: null,
-                site: null,
+                site: undefined,
                 source: null
             }
         }
         //If there is no pos then find a spot to setup next to the source
         if (this.memory.pos == null && this.memory.source != null) {
-            let path = this.getPathToSource(Game.getObjectById<Source>(this.memory.source));
+            let path = this.creep.pos.findPathToClosest(Game.getObjectById<Source>(this.memory.source));
             if (path.path.length > 0) {
                 this.memory.pos = path.path[path.path.length - 1];
                 this.creep._memory().path = path;
@@ -28,18 +28,26 @@ export class Prospector {
         }
     }
     public setupSource() {
-        if (this.creep.pos.isEqualTo(this.memory.pos)) {
-            if (this.memory.site == null) {
-                let sitePos = new RoomPosition(this.memory.pos.x, this.memory.pos.y, this.memory.pos.roomName);
-                return sitePos.createConstructionSite(STRUCTURE_CONTAINER);
+        let pos = new RoomPosition(this.memory.pos.x, this.memory.pos.y, this.memory.pos.roomName);
+        if (this.memory.site == null) {
+            let site = pos.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
+            if (site == null) {
+                return pos.createConstructionSite(STRUCTURE_CONTAINER);
             } else {
-                return this.creep.harvest(Game.getObjectById<Source>(this.memory.source))
+                this.memory.site = site.id;
             }
+        }
+        let site = Game.getObjectById<ConstructionSite>(this.memory.site)
+        if (this.creep.pos.isEqualTo(site.pos)) {
+            if (this.creep.carry[RESOURCE_ENERGY] > 10) {
+                this.creep.build(site);
+            }
+            return this.creep.harvest(Game.getObjectById<Source>(this.memory.source));
         } else {
             if (this.creep._memory().path == null || this.creep._memory().path.path.length < 1) {
-
+                this.creep._memory().path = this.creep.pos.findPathToClosest(site);
             } else {
-                console.log(this.creep.moveByPath(this.creep._memory().path))
+                this.creep.travelByPath()
             }
         }
     }

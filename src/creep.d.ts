@@ -1,7 +1,9 @@
 interface Creep {
     _memory(): CreepMemory;
-    travelTo(path: {path: RoomPosition[], ops: number});
+    travelByPath(): number;
 }
 interface CreepMemory {
     path: { path: RoomPosition[], ops: number };
+    ticksBlocked: number;
+    lastPos: RoomPosition;
 }

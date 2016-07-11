@@ -21,7 +21,6 @@ export class StartStrategy implements Strategy {
         });
     }
     public execute() {
-        console.log(`we're inside startstrategy`);
         this.manageProspectors();
     }
     public recommend() {
@@ -38,14 +37,16 @@ export class StartStrategy implements Strategy {
         });
     }
     assignProspector(prospector: Prospector, source: Source) {
-
+        
     }
     assignAssistant(prospector: Prospector, assistant: Prospector) {
 
     }
+    manageMines() {
+
+    }
     manageProspectors() {
         let availableSource = this.availableSources()[0];
-        console.log(`available source: ${availableSource}`)
         if (availableSource != null) {
             let spawn = _.find(Game.spawns, spawn => spawn.room.name == this.room.name);
             console.log(`selected spawn: ${spawn}`)
